@@ -1,0 +1,279 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TemuBarang">
+  <meta name="description" content="TemuBarang - Platform Pelaporan dan Pencarian Barang Hilang & Temuan Kampus">
+  <title>TemuBarang</title>
+
+  <!-- Google Fonts: Manrope (Revamp Figma Theme) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-homescreen.png">
+  <link rel="icon" type="image/png" href="icons/icon-homescreen.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css?v=5027">
+</head>
+<body>
+
+  <div class="app-splash" id="app-splash" role="dialog" aria-label="Memuat TemuBarang" aria-modal="true">
+    <div class="app-splash-trail"></div>
+    <div class="app-splash-flash"></div>
+    <img class="app-splash-mark" src="icons/icon-homescreen.png" alt="">
+    <div class="app-splash-brand">
+      <div class="app-splash-name">Temu<span>Barang</span></div>
+      <div class="app-splash-subtitle">TEMUKAN BARANGMU</div>
+    </div>
+    <button class="app-splash-skip" id="app-splash-skip" type="button" aria-label="Lewati splash screen">Lewati</button>
+  </div>
+
+  <div class="app-shell-layout">
+    <!-- Desktop Left Sidebar Navigation (Matching Figma) -->
+    <aside class="desktop-sidebar" id="desktop-sidebar">
+      <div class="sidebar-top">
+
+        <!-- Brand Row: Logo + TemuBarang + Hamburger Toggle -->
+        <div class="sidebar-brand-row">
+          <div class="sidebar-brand" onclick="location.hash='#/beranda'">
+            <img class="brand-logo" src="icons/icon-homescreen.png" alt="Logo TemuBarang">
+            <span class="brand-text">Temu<span class="brand-blue">Barang</span></span>
+          </div>
+
+          <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Tutup / Buka Sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <nav class="sidebar-menu">
+          <a href="#/beranda" class="sidebar-item" id="side-tab-beranda">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Beranda</span>
+          </a>
+
+          <a href="#/hilang" class="sidebar-item" id="side-tab-hilang">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Hilang</span>
+          </a>
+
+          <a href="#/lapor" class="sidebar-item" id="side-tab-lapor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Lapor</span>
+          </a>
+
+          <a href="#/temuan" class="sidebar-item" id="side-tab-temuan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 11 12 14 22 4"></polyline>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+            <span>Temuan</span>
+          </a>
+
+          <a href="#/profil" class="sidebar-item" id="side-tab-profil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Profil</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-help-widget" id="sidebar-help-btn" onclick="openHelpModal()" title="Buka Pusat Bantuan">
+          <div class="help-question-circle">?</div>
+          <div class="help-widget-title">Butuh bantuan?</div>
+          <div class="help-widget-desc">Hubungi pusat bantuan</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content-flow">
+      <!-- Mobile Only Top Header -->
+      <header class="mobile-top-header">
+        <div class="mobile-header-inner">
+          <div class="mobile-brand" onclick="location.hash='#/beranda'">
+            <img class="brand-logo mobile-brand-logo" src="icons/icon-homescreen.png" alt="Logo TemuBarang">
+            <span class="brand-text" style="font-size: 17px;">Temu<span class="brand-blue">Barang</span></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- App Main Content Container -->
+      <main class="main-body-container" id="app-content">
+        <div style="text-align:center; padding: 60px; color: #64748b;">Memuat TemuBarang...</div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar (Mobile Only) -->
+  <nav class="mobile-bottom-nav">
+    <div class="mobile-nav-inner">
+      <a href="#/beranda" class="mobile-tab" id="tab-beranda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Beranda</span>
+      </a>
+
+      <a href="#/hilang" class="mobile-tab" id="tab-hilang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>Hilang</span>
+      </a>
+
+      <a href="#/lapor" class="mobile-fab" id="tab-lapor">
+        <div class="fab-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </div>
+        <span>Lapor</span>
+      </a>
+
+      <a href="#/temuan" class="mobile-tab" id="tab-temuan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span>Temuan</span>
+      </a>
+
+      <a href="#/profil" class="mobile-tab" id="tab-profil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>Profil</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Help Center Modal -->
+  <div class="help-modal-overlay" id="help-modal-overlay" onclick="if(event.target === this) closeHelpModal();">
+    <div class="help-modal-box">
+      <div class="help-modal-header">
+        <div>
+          <div class="help-modal-title">Pusat Bantuan TemuBarang</div>
+          <div class="help-modal-subtitle">Panduan cepat penanganan barang hilang & temuan kampus</div>
+        </div>
+        <button class="help-close-btn" onclick="closeHelpModal()" title="Tutup">✕</button>
+      </div>
+
+      <div class="help-faq-item">
+        <div class="help-faq-title">📦 Bagaimana cara mengambil barang temuan?</div>
+        <div class="help-faq-desc">Buka detail barang di menu <strong>Temuan</strong>, lalu hubungi kontak penemu atau datangi pos satpam tertera dengan membawa KTM & bukti verifikasi kepemilikan.</div>
+      </div>
+
+      <div class="help-faq-item">
+        <div class="help-faq-title">🔍 Bagaimana jika barang saya belum terdaftar?</div>
+        <div class="help-faq-desc">Buka menu <strong>Lapor</strong>, pilih jenis <em>Barang Hilang</em>, dan upload foto serta deskripsi ciri khusus agar penemu dapat mengidentifikasinya.</div>
+      </div>
+
+      <div class="help-faq-item">
+        <div class="help-faq-title">🛡️ Tips Keamanan Pengambilan Barang</div>
+        <div class="help-faq-desc">Selalu lakukan serah terima di tempat umum (Pos Satpam, Gedung Kampus, dsb.) dan jangan pernah memberikan kode OTP atau PIN rahasia.</div>
+      </div>
+
+      <a href="https://wa.me/6285795457137?text=Halo%20Pos%20Satpam%20Kampus,%20saya%20butuh%20bantuan%20terkait%20barang%20hilang/temuan." target="_blank" class="help-wa-btn">
+        💬 Hubungi Pos Satpam Kampus (0857-9545-7137)
+      </a>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/api.js?v=5027"></script>
+  <script src="js/app.js?v=5027"></script>
+
+  <!-- Sidebar Toggle & Help Modal Logic -->
+  <script>
+    (function () {
+      const splash = document.getElementById('app-splash');
+      const skipButton = document.getElementById('app-splash-skip');
+      if (!splash) return;
+
+      let hiding = false;
+      const hideSplash = () => {
+        if (hiding) return;
+        hiding = true;
+        splash.classList.add('app-splash-fading');
+        window.setTimeout(() => splash.remove(), 650);
+      };
+
+      if (skipButton) skipButton.addEventListener('click', hideSplash);
+      splash.addEventListener('click', (event) => {
+        if (event.target === splash) hideSplash();
+      });
+      window.addEventListener('load', () => {
+        window.setTimeout(hideSplash, 4200);
+      });
+    })();
+
+    function openHelpModal() {
+      const modal = document.getElementById('help-modal-overlay');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeHelpModal() {
+      const modal = document.getElementById('help-modal-overlay');
+      if (modal) modal.style.display = 'none';
+    }
+
+    (function () {
+      const STORAGE_KEY = 'tb_sidebar_collapsed';
+
+      function applySidebarState(sidebar, collapsed) {
+        if (collapsed) {
+          sidebar.classList.add('collapsed');
+        } else {
+          sidebar.classList.remove('collapsed');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('desktop-sidebar');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        if (!sidebar || !toggleBtn) return;
+
+        // Restore saved state
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const startCollapsed = saved === 'true';
+        applySidebarState(sidebar, startCollapsed);
+
+        toggleBtn.addEventListener('click', function () {
+          const isNowCollapsed = !sidebar.classList.contains('collapsed');
+          applySidebarState(sidebar, isNowCollapsed);
+          localStorage.setItem(STORAGE_KEY, isNowCollapsed);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
+

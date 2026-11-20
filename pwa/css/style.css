@@ -1,0 +1,1526 @@
+/* ==========================================================================
+   TemuBarang - Design System (Revamp Figma Site: Manrope + Royal Blue Theme)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 42%, #ffffff 0%, #f8fbff 48%, #eff6ff 100%);
+  cursor: pointer;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app-splash-fading {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-splash-mark {
+  position: absolute;
+  top: 29%;
+  left: 50%;
+  width: min(42vw, 150px);
+  aspect-ratio: 1;
+  object-fit: contain;
+  opacity: 0;
+  filter: drop-shadow(0 12px 24px rgba(37, 99, 235, 0.18));
+  pointer-events: none;
+  transform: translate(-50%) translateX(-100vw) scale(0.94);
+  animation:
+    app-splash-rush 2s cubic-bezier(0.15, 0.8, 0.18, 1) 50ms forwards,
+    app-splash-glow 1.5s ease-out 2.55s forwards;
+}
+
+.app-splash-trail {
+  position: absolute;
+  top: 49%;
+  left: -50%;
+  width: 58vw;
+  height: 4px;
+  opacity: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #93c5fd, #2563eb, transparent);
+  filter: blur(4px);
+  pointer-events: none;
+  animation: app-splash-trail 1.5s ease-out 0.1s forwards;
+}
+
+.app-splash-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: #ffffff;
+  pointer-events: none;
+  animation: app-splash-flash 0.23s ease-out 2.45s;
+}
+
+.app-splash-brand {
+  position: absolute;
+  top: 81%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  animation: app-splash-brand-in 0.9s ease-out 2.9s forwards;
+}
+
+.app-splash-name {
+  color: #0f172a;
+  font-size: clamp(28px, 7vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.app-splash-name span {
+  color: #2563eb;
+}
+
+.app-splash-subtitle {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+}
+
+.app-splash-skip {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2563eb;
+  font: 700 12px var(--font-main);
+  opacity: 0;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+  animation: app-splash-skip-in 0.6s ease-out 1.5s forwards;
+}
+
+@keyframes app-splash-rush {
+  0% {
+    opacity: 0;
+    left: -20%;
+    transform: translate(-50%) scale(0.94);
+  }
+  58% {
+    opacity: 1;
+    left: 53%;
+    transform: translate(-50%) scale(1.025);
+  }
+  78% {
+    left: 49%;
+    transform: translate(-50%) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    left: 50%;
+    transform: translate(-50%) scale(1);
+  }
+}
+
+@keyframes app-splash-trail {
+  0% { opacity: 0; left: -35%; }
+  22% { opacity: 0.95; }
+  100% { opacity: 0; left: 48%; }
+}
+
+@keyframes app-splash-flash {
+  0% { opacity: 0; }
+  25% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+@keyframes app-splash-glow {
+  0% { filter: drop-shadow(0 12px 24px rgba(37, 99, 235, 0.18)); }
+  45% { filter: drop-shadow(0 0 24px rgba(37, 99, 235, 0.5)); }
+  100% { filter: drop-shadow(0 10px 20px rgba(37, 99, 235, 0.22)); }
+}
+
+@keyframes app-splash-brand-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes app-splash-skip-in {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-splash-mark,
+  .app-splash-trail,
+  .app-splash-flash,
+  .app-splash-brand,
+  .app-splash-skip {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .app-splash-mark {
+    left: 50%;
+    opacity: 1;
+    transform: translate(-50%) scale(1);
+  }
+
+  .app-splash-brand {
+    opacity: 1;
+  }
+}
+
+:root {
+  --font-main: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Primary Blue Accents */
+  --primary-blue: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-ring: rgba(37, 99, 235, 0.15);
+
+  /* Neutrals & Surfaces */
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-subtle: #f8fafc;
+
+  /* Slate Typography */
+  --text-dark: #0f172a;
+  --text-body: #334155;
+  --text-gray: #64748b;
+  --text-subtle: #94a3b8;
+
+  /* Borders */
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Semantic Status Colors */
+  --amber-bg: #fffbeb;
+  --amber-text: #b45309;
+  --amber-dot: #d97706;
+
+  --green-bg: #ecfdf5;
+  --green-text: #047857;
+  --green-dot: #059669;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-page);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* ==========================================================================
+   1. Brand Logo: Twin-Pill Icon + Wordmark
+   ========================================================================== */
+.brand-logo {
+  display: block;
+  height: 34px;
+  width: 34px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.4px;
+}
+
+.brand-blue {
+  color: var(--primary-blue);
+}
+
+/* ==========================================================================
+   2. Layout Architecture: Desktop Sidebar + Main Content Flow
+   ========================================================================== */
+.app-shell-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Desktop Sidebar — Collapsible */
+.desktop-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  border-right: 1px solid var(--border-color);
+  padding: 20px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 40;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* Sidebar COLLAPSED state */
+.desktop-sidebar.collapsed {
+  width: 68px;
+  padding: 20px 10px 24px;
+}
+
+/* Sidebar Brand Row (Logo + TemuBarang + Hamburger Toggle) */
+.sidebar-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 26px;
+  gap: 8px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-left: 2px;
+}
+
+/* Toggle button – Hamburger garis tiga di samping TemuBarang */
+.sidebar-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary-blue);
+  border-color: #bfdbfe;
+}
+
+.sidebar-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-body);
+}
+
+.sidebar-toggle-btn:hover svg {
+  color: var(--primary-blue);
+}
+
+/* When collapsed: hide brand and center the hamburger button */
+.desktop-sidebar.collapsed .sidebar-brand-row {
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.desktop-sidebar.collapsed .sidebar-brand {
+  display: none;
+}
+
+.desktop-sidebar.collapsed .sidebar-toggle-btn {
+  margin: 0 auto;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-gray);
+  transition: all 0.15s ease;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-item svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Hide labels in collapsed mode */
+.desktop-sidebar.collapsed .sidebar-item span {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+  display: none;
+}
+
+/* When collapsed, center the icon inside its button */
+.desktop-sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar-item:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-dark);
+}
+
+.sidebar-item.active {
+  background-color: var(--primary-light);
+  color: var(--primary-blue);
+  font-weight: 700;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.sidebar-help-widget {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 18px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar-help-widget:hover {
+  background-color: var(--primary-light);
+  border-color: #bfdbfe;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+/* Only show help icon when collapsed */
+.desktop-sidebar.collapsed .sidebar-help-widget {
+  padding: 10px;
+}
+
+.desktop-sidebar.collapsed .help-widget-title,
+.desktop-sidebar.collapsed .help-widget-desc {
+  display: none;
+}
+
+.help-question-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.28);
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.help-widget-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.help-widget-desc {
+  font-size: 11.5px;
+  color: var(--text-gray);
+}
+
+/* Main Content Area — expands when sidebar collapses */
+.main-content-flow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-page);
+}
+
+.main-body-container {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  padding: 36px 48px 100px;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   3. Page Header: Overline + Title + Subtitle
+   ========================================================================== */
+.content-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.content-header-left {
+  flex: 1;
+}
+
+.content-overline {
+  color: var(--primary-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.page-title-figma {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.4px;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.page-desc-figma {
+  font-size: 13.5px;
+  color: var(--text-gray);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   4. Search Bar Component (Figma Style)
+   ========================================================================== */
+.search-box-figma {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.search-icon-figma {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+.search-input-figma {
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  padding: 0 20px 0 48px;
+  font-size: 14px;
+  font-family: var(--font-main);
+  color: var(--text-dark);
+  outline: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.search-input-figma:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.section-divider-figma {
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 22px;
+}
+
+/* ==========================================================================
+   5. Filter Pills Component (Rounded 9999px)
+   ========================================================================== */
+.filter-pills-row-figma {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+
+.filter-pills-row-figma::-webkit-scrollbar {
+  display: none;
+}
+
+.pill-btn-figma {
+  border-radius: 9999px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.pill-btn-figma:hover {
+  background-color: var(--bg-subtle);
+  border-color: #cbd5e1;
+}
+
+.pill-btn-figma.active {
+  background-color: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+}
+
+/* Subfilter row lokasi */
+.subfilter-row-figma {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: var(--text-gray);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.subfilter-chip-figma {
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-gray);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.subfilter-chip-figma.active {
+  background-color: var(--primary-light);
+  border-color: #bfdbfe;
+  color: var(--primary-blue);
+}
+
+/* ==========================================================================
+   6. Meta Counter & Sorting Row
+   ========================================================================== */
+.meta-row-figma {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--text-gray);
+}
+
+.meta-counter-figma strong {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.sort-dropdown-figma,
+.sort-select-figma {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 6px 30px 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: var(--font-main);
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: all 0.15s ease;
+}
+
+.sort-dropdown-figma:hover,
+.sort-select-figma:hover {
+  border-color: var(--primary-figma);
+  color: var(--primary-figma);
+  background-color: #f8fafc;
+}
+
+.sort-dropdown-figma:focus,
+.sort-select-figma:focus {
+  border-color: var(--primary-figma);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ==========================================================================
+   7. Item Card Component (Exact Figma Match)
+   ========================================================================== */
+.cards-grid-figma {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 16px;
+}
+
+.card-figma {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.card-figma:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+  border-color: #cbd5e1;
+}
+
+.card-figma-img-wrap {
+  width: 130px;
+  height: 130px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: var(--bg-subtle);
+}
+
+.card-figma-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-figma-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.card-figma-top-tags {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.chip-cat-figma {
+  background-color: var(--primary-light);
+  color: var(--primary-blue);
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 3px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chip-status-figma {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.chip-status-lost {
+  background-color: var(--amber-bg);
+  color: var(--amber-text);
+}
+
+.chip-status-lost .status-dot {
+  background-color: var(--amber-dot);
+}
+
+.chip-status-found {
+  background-color: var(--green-bg);
+  color: var(--green-text);
+}
+
+.chip-status-found .status-dot {
+  background-color: var(--green-dot);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.card-figma-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-figma-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-gray);
+  margin-bottom: 8px;
+}
+
+.meta-item-figma {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-item-figma svg {
+  width: 13px;
+  height: 13px;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+}
+
+.card-figma-footer {
+  border-top: 1px solid var(--border-light);
+  padding-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--text-gray);
+}
+
+.reporter-figma {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.reporter-avatar-figma {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--primary-light);
+  color: var(--primary-blue);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.reporter-label-figma {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reporter-label-figma strong {
+  color: var(--text-dark);
+}
+
+.card-chevron-figma {
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.card-chevron-figma svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ==========================================================================
+   8. Empty State Component
+   ========================================================================== */
+.empty-state-figma {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 56px 24px;
+  background-color: #ffffff;
+  border: 1px dashed var(--border-color);
+  border-radius: 18px;
+  max-width: 540px;
+  margin: 20px auto;
+  width: 100%;
+}
+
+.empty-icon-figma {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.empty-state-figma h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+}
+
+.empty-state-figma p {
+  font-size: 13px;
+  color: var(--text-gray);
+  margin-bottom: 20px;
+}
+
+/* ==========================================================================
+   9. Beranda KPI Stats Grid & Feed Sections
+   ========================================================================== */
+.stats-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-kpi-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.stat-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+  border-color: #cbd5e1;
+}
+
+.stat-kpi-num {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.stat-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-gray);
+  margin-top: 6px;
+}
+
+.section-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 24px 0 14px;
+}
+
+.section-head-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.btn-see-all-figma {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   10. Form Lapor Styling
+   ========================================================================== */
+.form-card-figma {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 32px 28px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.form-grid-figma {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 22px;
+}
+
+.form-col-full {
+  grid-column: 1 / -1;
+}
+
+.form-group-figma {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label-figma {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.form-input-figma {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  padding: 0 14px;
+  font-size: 13.5px;
+  font-family: var(--font-main);
+  color: var(--text-dark);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.form-input-figma:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+/* Upload Dropzone (Pilih File Foto Gambar) */
+.upload-dropzone-figma {
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 22px 18px;
+  text-align: center;
+  background-color: var(--bg-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.upload-dropzone-figma:hover,
+.upload-dropzone-figma.drag-over {
+  border-color: var(--primary-blue);
+  background-color: var(--primary-light);
+}
+
+.upload-dropzone-figma.drag-over {
+  border-style: solid;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.upload-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.upload-icon-circle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.btn-primary-figma {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary-figma:hover {
+  background-color: var(--primary-hover);
+}
+
+/* ==========================================================================
+   11. Profil Styling
+   ========================================================================== */
+.profil-card-figma {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 44px 28px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.profil-avatar-wrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 16px;
+  border: 3px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.profil-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profil-name-figma {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+}
+
+.profil-nim-figma {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--primary-blue);
+  margin-bottom: 4px;
+}
+
+.profil-dept-figma {
+  font-size: 13.5px;
+  color: var(--text-gray);
+  margin-bottom: 28px;
+}
+
+/* ==========================================================================
+   12. Detail View Styling
+   ========================================================================== */
+.detail-card-figma {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.detail-split-wrap {
+  display: flex;
+  flex-direction: row;
+}
+
+.detail-img-box {
+  width: 420px;
+  min-height: 100%;
+  flex-shrink: 0;
+  background-color: var(--bg-subtle);
+}
+
+.detail-img-full {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-info-box {
+  flex: 1;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-meta-box {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 18px 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+}
+
+.detail-wa-btn {
+  background-color: #25d366;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  width: 100%;
+  margin-top: 14px;
+  font-size: 13.5px;
+}
+
+.btn-secondary-action {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-main);
+}
+
+.btn-danger-action {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-main);
+}
+
+/* ==========================================================================
+   13. Responsive Media Queries
+   ========================================================================== */
+
+/* Mobile / Tablet (< 900px) */
+@media (max-width: 899px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+
+  .mobile-top-header {
+    display: block;
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .mobile-header-inner {
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .mobile-brand-logo {
+    height: 28px;
+    width: 28px;
+  }
+
+  .main-body-container {
+    padding: 20px 16px 90px;
+  }
+
+  .page-title-figma {
+    font-size: 22px;
+  }
+
+  .cards-grid-figma {
+    grid-template-columns: 1fr;
+  }
+
+  .card-figma-img-wrap {
+    width: 100px;
+    height: 100px;
+  }
+
+  .form-grid-figma {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-split-wrap {
+    flex-direction: column;
+  }
+
+  .detail-img-box {
+    width: 100%;
+    height: 240px;
+  }
+
+  .detail-info-box {
+    padding: 20px;
+  }
+
+  .mobile-bottom-nav {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 68px;
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-color);
+    z-index: 50;
+  }
+
+  .mobile-nav-inner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    position: relative;
+    padding: 0 12px;
+  }
+
+  .mobile-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--text-gray);
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+
+  .mobile-tab svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-tab.active {
+    color: var(--primary-blue);
+    font-weight: 700;
+  }
+
+  .mobile-fab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--primary-blue);
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: -18px;
+  }
+
+  .fab-pill {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--primary-blue);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    border: 3px solid #ffffff;
+    margin-bottom: 2px;
+  }
+
+  .fab-pill svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Desktop Only (>= 900px) */
+@media (min-width: 900px) {
+  .mobile-top-header {
+    display: none !important;
+  }
+
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   14. Help Center Modal
+   ========================================================================== */
+.help-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.help-modal-box {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  padding: 26px 24px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+  border: 1px solid var(--border-color);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.help-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.help-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.help-modal-subtitle {
+  font-size: 12.5px;
+  color: var(--text-gray);
+  margin-top: 2px;
+}
+
+.help-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-gray);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.help-close-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.help-faq-item {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.help-faq-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-faq-desc {
+  font-size: 12px;
+  color: var(--text-gray);
+  line-height: 1.5;
+}
+
+.help-wa-btn {
+  background-color: #25d366;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 18px;
+  border-radius: 12px;
+  width: 100%;
+  margin-top: 14px;
+  font-size: 13px;
+  font-family: var(--font-main);
+  transition: background-color 0.15s ease;
+}
+
+.help-wa-btn:hover {
+  background-color: #22bf5b;
+}
+
