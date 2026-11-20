@@ -15,6 +15,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Disk Cache Header: Mengaktifkan HTTP Disk Cache browser (agar muncul "(disk cache)" di Network tab)
+app.use((req, res, next) => {
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+  }
+  next();
+});
+
 // API Routes
 app.use('/api/categories', categoryRoutes);
 app.use('/api/lost-items', lostItemRoutes);

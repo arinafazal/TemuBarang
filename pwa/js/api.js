@@ -1,43 +1,174 @@
-// Konfigurasi endpoint API
+// ==========================================================================
+// 1. Konfigurasi endpoint API
+// ==========================================================================
 const isFile = window.location.protocol === 'file:';
 const isLocal = isFile || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
 const API_BASE_URL = isLocal
   ? (window.location.port === '3000' ? '' : 'http://localhost:3000')
   : '';
 
-// Helper Storage Cache untuk Mode Offline (Bulletproof LocalStorage Fallback)
-const TB_CACHE = {
-  get(key) {
+// ==========================================================================
+// 2. Query Caching (Sesuai Modul 5: In-Memory Map + LocalStorage Disk Storage + TTL)
+// Data di-cache selama TTL, kunjungan kedua diambil langsung dari disk/memory.
+// Di DevTools Network tab juga didukung Cache-Control HTTP disk cache.
+// ==========================================================================
+const MEMORY_CACHE = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 Jam TTL
+
+function getCached(key) {
+  // 1. Cek memory cache (paling cepat)
+  const mem = MEMORY_CACHE.get(key);
+  if (mem) {
+    if (Date.now() - mem.timestamp <= CACHE_TTL) {
+      return mem.data;
+    }
+    MEMORY_CACHE.delete(key);
+  }
+
+  // 2. Cek localStorage (disk cache — bertahan meski browser di-refresh)
+  try {
+    const raw = localStorage.getItem(`qcache_${key}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Date.now() - parsed.timestamp <= CACHE_TTL) {
+        MEMORY_CACHE.set(key, parsed); // naikan ke memory
+        return parsed.data;
+      }
+      localStorage.removeItem(`qcache_${key}`);
+    }
+  } catch (e) {
+    console.warn('Gagal membaca cache lokal:', e);
+  }
+
+  return null;
+}
+
+function setCached(key, data) {
+  const entry = { data, timestamp: Date.now() };
+  MEMORY_CACHE.set(key, entry);
+  try {
+    localStorage.setItem(`qcache_${key}`, JSON.stringify(entry));
+  } catch (e) {
+    console.warn('Gagal menyimpan cache lokal:', e);
+  }
+}
+
+function invalidateCache(key) {
+  MEMORY_CACHE.delete(key);
+  try {
+    localStorage.removeItem(`qcache_${key}`);
+  } catch (e) {
+    console.warn('Gagal menghapus cache lokal:', e);
+  }
+}
+
+function invalidateCacheByPrefix(prefix) {
+  for (const k of MEMORY_CACHE.keys()) {
+    if (k.startsWith(prefix)) MEMORY_CACHE.delete(k);
+  }
+  try {
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`qcache_${prefix}`)) {
+        toRemove.push(k);
+      }
+    }
+    toRemove.forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    console.warn('Gagal membersihkan cache lokal:', e);
+  }
+}
+
+// Expose Query Cache Utility
+window.TB_QUERY_CACHE = {
+  getCached,
+  setCached,
+  invalidateCache,
+  invalidateCacheByPrefix
+};
+
+// ==========================================================================
+// 3. Soft Delete / Arsip (Sesuai Modul 5 archiveStorage.js via localStorage)
+// Guaranteed to work across all backend schemas without DB column dependencies.
+// ==========================================================================
+const ARCHIVE_KEY = 'temubarang_archived_items';
+
+const TB_ARCHIVE = {
+  getArchivedItems() {
     try {
-      const item = localStorage.getItem(`tb_cache_${key}`);
-      return item ? JSON.parse(item) : null;
+      const raw = localStorage.getItem(ARCHIVE_KEY);
+      return raw ? JSON.parse(raw) : [];
     } catch (e) {
-      return null;
+      console.warn('Gagal membaca arsip lokal:', e);
+      return [];
     }
   },
-  set(key, data) {
+
+  isItemArchived(itemId, type) {
+    if (!itemId) return false;
+    const list = this.getArchivedItems();
+    return list.some((item) => String(item.id) === String(itemId) && (!type || item._archiveType === type));
+  },
+
+  archiveItemLocally(item, type = 'temuan') {
+    if (!item || !item.id) return false;
     try {
-      localStorage.setItem(`tb_cache_${key}`, JSON.stringify(data));
+      const list = this.getArchivedItems();
+      if (!list.some((it) => String(it.id) === String(item.id) && it._archiveType === type)) {
+        const archivedItem = {
+          ...item,
+          _archiveType: type,
+          archivedAt: new Date().toISOString()
+        };
+        list.unshift(archivedItem);
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(list));
+      }
+      return true;
     } catch (e) {
-      console.warn('Gagal menyimpan cache offline:', e);
+      console.warn('Gagal mengarsipkan laporan di perangkat ini:', e);
+      return false;
+    }
+  },
+
+  restoreItemLocally(itemId, type = 'temuan') {
+    if (!itemId) return false;
+    try {
+      const list = this.getArchivedItems();
+      const next = list.filter((item) => !(String(item.id) === String(itemId) && (!type || item._archiveType === type)));
+      localStorage.setItem(ARCHIVE_KEY, JSON.stringify(next));
+      return true;
+    } catch (e) {
+      console.warn('Gagal memulihkan laporan dari arsip lokal:', e);
+      return false;
     }
   }
 };
 
+window.TB_ARCHIVE = TB_ARCHIVE;
+
+// ==========================================================================
+// 4. REST API Client dengan Query Caching (Memory + Disk Storage)
+// ==========================================================================
 const API = {
   // Categories
   async getCategories() {
+    const cacheKey = 'categories';
+    const cached = getCached(cacheKey);
+    if (cached && cached.data && cached.data.length) {
+      return { ...cached, _fromDiskCache: true };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/categories`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.data && data.data.length) {
-        TB_CACHE.set('categories', data);
+        setCached(cacheKey, data);
       }
       return data;
     } catch (err) {
-      console.warn('[TemuBarang Offline] Mengambil kategori dari cache...', err);
-      const cached = TB_CACHE.get('categories');
+      console.warn('[TemuBarang] Mengambil kategori dari cache...', err);
       if (cached && cached.data && cached.data.length) {
         return { ...cached, _isOffline: true };
       }
@@ -49,18 +180,24 @@ const API = {
   async getLostItems(params = {}) {
     const query = new URLSearchParams(params).toString();
     const cacheKey = `lost_items_${query}`;
+    const cached = getCached(cacheKey) || (!query ? getCached('lost_items_all') : null);
+
+    // Cek disk/memory cache terlebih dahulu
+    if (cached && cached.data && cached.data.length) {
+      return { ...cached, _fromDiskCache: true };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.data && data.data.length) {
-        TB_CACHE.set(cacheKey, data);
-        if (!query) TB_CACHE.set('lost_items_all', data);
+        setCached(cacheKey, data);
+        if (!query) setCached('lost_items_all', data);
       }
       return data;
     } catch (err) {
-      console.warn('[TemuBarang Offline] Mengambil barang hilang dari cache...', err);
-      const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
+      console.warn('[TemuBarang] Mengambil barang hilang dari cache...', err);
       if (cached && cached.data && cached.data.length) {
         return { ...cached, _isOffline: true };
       }
@@ -70,21 +207,24 @@ const API = {
 
   async getLostItemById(id) {
     const cacheKey = `lost_item_${id}`;
+    const cached = getCached(cacheKey);
+    if (cached && cached.data) {
+      return { ...cached, _fromDiskCache: true };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.data) {
-        TB_CACHE.set(cacheKey, data);
+        setCached(cacheKey, data);
       }
       return data;
     } catch (err) {
-      console.warn(`[TemuBarang Offline] Mengambil detail hilang #${id} dari cache...`, err);
-      const cached = TB_CACHE.get(cacheKey);
+      console.warn(`[TemuBarang] Mengambil detail hilang #${id} dari cache...`, err);
       if (cached && cached.data) return { ...cached, _isOffline: true };
 
-      // Fallback: Cari di cache daftar barang hilang yang pernah dimuat
-      const allLost = TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
+      const allLost = getCached('lost_items_all') || getCached('lost_items_');
       if (allLost && Array.isArray(allLost.data)) {
         const found = allLost.data.find((item) => String(item.id) === String(id));
         if (found) {
@@ -104,6 +244,8 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    // Invalidate query cache agar data baru langsung tampil
+    invalidateCacheByPrefix('lost_items');
     return res.json();
   },
 
@@ -116,6 +258,8 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    invalidateCacheByPrefix('lost_items');
+    invalidateCache(`lost_item_${id}`);
     return res.json();
   },
 
@@ -126,6 +270,8 @@ const API = {
     const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`, {
       method: 'DELETE'
     });
+    invalidateCacheByPrefix('lost_items');
+    invalidateCache(`lost_item_${id}`);
     return res.json();
   },
 
@@ -133,18 +279,24 @@ const API = {
   async getFoundItems(params = {}) {
     const query = new URLSearchParams(params).toString();
     const cacheKey = `found_items_${query}`;
+    const cached = getCached(cacheKey) || (!query ? getCached('found_items_all') : null);
+
+    // Cek disk/memory cache terlebih dahulu
+    if (cached && cached.data && cached.data.length) {
+      return { ...cached, _fromDiskCache: true };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.data && data.data.length) {
-        TB_CACHE.set(cacheKey, data);
-        if (!query) TB_CACHE.set('found_items_all', data);
+        setCached(cacheKey, data);
+        if (!query) setCached('found_items_all', data);
       }
       return data;
     } catch (err) {
-      console.warn('[TemuBarang Offline] Mengambil barang temuan dari cache...', err);
-      const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
+      console.warn('[TemuBarang] Mengambil barang temuan dari cache...', err);
       if (cached && cached.data && cached.data.length) {
         return { ...cached, _isOffline: true };
       }
@@ -154,21 +306,24 @@ const API = {
 
   async getFoundItemById(id) {
     const cacheKey = `found_item_${id}`;
+    const cached = getCached(cacheKey);
+    if (cached && cached.data) {
+      return { ...cached, _fromDiskCache: true };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data && data.data) {
-        TB_CACHE.set(cacheKey, data);
+        setCached(cacheKey, data);
       }
       return data;
     } catch (err) {
-      console.warn(`[TemuBarang Offline] Mengambil detail temuan #${id} dari cache...`, err);
-      const cached = TB_CACHE.get(cacheKey);
+      console.warn(`[TemuBarang] Mengambil detail temuan #${id} dari cache...`, err);
       if (cached && cached.data) return { ...cached, _isOffline: true };
 
-      // Fallback: Cari di cache daftar barang temuan yang pernah dimuat
-      const allFound = TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
+      const allFound = getCached('found_items_all') || getCached('found_items_');
       if (allFound && Array.isArray(allFound.data)) {
         const found = allFound.data.find((item) => String(item.id) === String(id));
         if (found) {
@@ -188,6 +343,7 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    invalidateCacheByPrefix('found_items');
     return res.json();
   },
 
@@ -200,6 +356,8 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    invalidateCacheByPrefix('found_items');
+    invalidateCache(`found_item_${id}`);
     return res.json();
   },
 
@@ -210,6 +368,8 @@ const API = {
     const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`, {
       method: 'DELETE'
     });
+    invalidateCacheByPrefix('found_items');
+    invalidateCache(`found_item_${id}`);
     return res.json();
   }
 };

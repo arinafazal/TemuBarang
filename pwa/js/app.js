@@ -90,7 +90,8 @@ async function renderDaftarHilang(container) {
     ]);
 
     state.categories = catRes.data || [];
-    const allItems = itemsRes.data || [];
+    const rawLost = itemsRes.data || [];
+    const allItems = rawLost.filter(it => !window.TB_ARCHIVE || !window.TB_ARCHIVE.isItemArchived(it.id, 'hilang'));
     state.lostItems = allItems;
 
     container.innerHTML = `
@@ -244,7 +245,8 @@ async function renderDaftarTemuan(container) {
     ]);
 
     state.categories = catRes.data || [];
-    const allItems = itemsRes.data || [];
+    const rawFound = itemsRes.data || [];
+    const allItems = rawFound.filter(it => !window.TB_ARCHIVE || !window.TB_ARCHIVE.isItemArchived(it.id, 'temuan'));
     state.foundItems = allItems;
 
     container.innerHTML = `
@@ -417,8 +419,8 @@ async function renderBeranda(container) {
       API.getLostItems({ limit: 4 })
     ]);
 
-    const foundItems = foundRes.data || [];
-    const lostItems = lostRes.data || [];
+    const foundItems = (foundRes.data || []).filter(it => !window.TB_ARCHIVE || !window.TB_ARCHIVE.isItemArchived(it.id, 'temuan'));
+    const lostItems = (lostRes.data || []).filter(it => !window.TB_ARCHIVE || !window.TB_ARCHIVE.isItemArchived(it.id, 'hilang'));
 
     container.innerHTML = `
       <!-- Content Header -->
@@ -934,8 +936,63 @@ function renderProfil(container) {
         </div>
       </div>
     </div>
+
+    <!-- Kotak Arsip Laporan (Soft Delete Feature - Sesuai Modul 5) -->
+    <div class="profil-card-figma" style="margin-top:24px; text-align:left; padding:28px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#fef3c7; color:#b45309; display:flex; align-items:center; justify-content:center; font-size:18px;">
+            📦
+          </div>
+          <div>
+            <h3 style="font-size:16px; font-weight:800; color:var(--text-dark); margin:0;">Kotak Arsip Laporan (Soft Delete)</h3>
+            <p style="font-size:12px; color:var(--text-gray); margin:2px 0 0;">Arsip hanya tersimpan di browser ini dan menyembunyikan laporan dari daftar pada perangkat ini.</p>
+          </div>
+        </div>
+        <span style="font-size:12px; font-weight:700; background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:9999px;">
+          ${(window.TB_ARCHIVE ? window.TB_ARCHIVE.getArchivedItems().length : 0)} laporan
+        </span>
+      </div>
+
+      <div id="archived-items-container">
+        ${(window.TB_ARCHIVE && window.TB_ARCHIVE.getArchivedItems().length) ? `
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${window.TB_ARCHIVE.getArchivedItems().map(item => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f8fafc; border:1px solid var(--border-light); border-radius:12px; flex-wrap:wrap; gap:10px;">
+                <div>
+                  <div style="font-weight:700; font-size:14px; color:var(--text-dark);">${item.name}</div>
+                  <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">
+                    Tipe: <span style="font-weight:600; color:#2563eb;">${item._archiveType === 'temuan' ? 'Barang Temuan' : 'Barang Hilang'}</span> · Lokasi: ${item.location || '-'}
+                  </div>
+                </div>
+                <button class="pill-btn-figma active" onclick="restoreArchiveItem('${item.id}', '${item._archiveType}')" style="padding:6px 14px; font-size:12px; cursor:pointer;">
+                  🔄 Pulihkan ke Publik
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="text-align:center; padding:28px 16px; color:var(--text-gray); font-size:13px; background:#f8fafc; border-radius:12px; border:1px dashed var(--border-color);">
+            Belum ada laporan yang diarsipkan. Anda dapat mengarsipkan laporan dari tombol "📦 Arsipkan" di halaman detail barang.
+          </div>
+        `}
+      </div>
+    </div>
   `;
 }
+
+// Global Restore Handler for Archived Items
+window.restoreArchiveItem = function (id, type) {
+  if (confirm('Pulihkan laporan ini agar kembali tampil di daftar publik?')) {
+    if (window.TB_ARCHIVE && window.TB_ARCHIVE.restoreItemLocally(id, type)) {
+      alert('Laporan berhasil dipulihkan!');
+      const container = document.getElementById('app-content');
+      if (container) renderProfil(container);
+    } else {
+      alert('Laporan gagal dipulihkan. Penyimpanan browser mungkin tidak tersedia.');
+    }
+  }
+};
 
 // ==========================================================================
 // 6. DETAIL VIEW
@@ -984,7 +1041,7 @@ async function renderDetail(container, id, type) {
       <div class="detail-card-figma">
         <div class="detail-split-wrap">
           <div class="detail-img-box">
-            <img src="${photoUrl}" class="detail-img-full" alt="${item.name}" onerror="this.src='${NO_PHOTO_PLACEHOLDER}'">
+            <img src="${photoUrl}" class="detail-img-full" alt="${item.name}" loading="lazy" decoding="async" onerror="this.src='${NO_PHOTO_PLACEHOLDER}'">
           </div>
 
           <div class="detail-info-box">
@@ -1020,22 +1077,39 @@ async function renderDetail(container, id, type) {
 
             <!-- Live Status & Delete Actions -->
             <div style="font-size:11px; color:#94a3b8; text-align:center; margin-top:16px; margin-bottom:6px;">
-              ⚠️ Tombol di bawah hanya untuk pelapor barang ini
+              ⚠️ Opsi Pengelolaan Laporan (Pelapor)
             </div>
-            <div style="display:flex; gap:10px; margin-top:4px;">
-              <button class="btn-secondary-action" id="btn-toggle-status" style="flex:1;">
+            <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
+              <button class="btn-secondary-action" id="btn-toggle-status" style="flex:1; min-width:130px;">
                 ${isFound
                   ? (item.status === 'available' ? 'Tandai Sudah Diklaim' : 'Ubah ke Tersedia')
                   : (item.status === 'searching' ? 'Tandai Sudah Ditemukan' : 'Ubah ke Sedang Dicari')}
               </button>
-              <button class="btn-danger-action" id="btn-delete-report" style="flex:1;">
-                Hapus Laporan
+              <button class="btn-secondary-action" id="btn-archive-report" style="flex:1; min-width:130px; background:#f8fafc; border-color:#cbd5e1; color:#334155;">
+                📦 Arsipkan (Soft Delete)
+              </button>
+              <button class="btn-danger-action" id="btn-delete-report" style="flex:1; min-width:130px;">
+                Hapus Permanen
               </button>
             </div>
           </div>
         </div>
       </div>
     `;
+
+    const archiveBtn = document.getElementById('btn-archive-report');
+    if (archiveBtn) {
+      archiveBtn.addEventListener('click', () => {
+        if (confirm(`Arsipkan laporan "${item.name}" di browser ini? Laporan hanya akan disembunyikan dari daftar pada perangkat ini.`)) {
+          if (window.TB_ARCHIVE.archiveItemLocally(item, isFound ? 'temuan' : 'hilang')) {
+            alert('Laporan berhasil diarsipkan di perangkat ini.');
+            location.hash = `#/${isFound ? 'temuan' : 'hilang'}`;
+          } else {
+            alert('Laporan gagal diarsipkan. Penyimpanan browser mungkin tidak tersedia.');
+          }
+        }
+      });
+    }
 
     document.getElementById('btn-toggle-status').addEventListener('click', async () => {
       const konfirmasi = confirm(`Hanya pelapor yang boleh mengubah status ini.\n\nLanjutkan perubahan status laporan "${item.name}"?`);
@@ -1102,7 +1176,7 @@ function renderItemCardHTML(item, type) {
   return `
     <div class="card-figma" onclick="location.hash='${detailUrl}'">
       <div class="card-figma-img-wrap">
-        <img src="${photo}" class="card-figma-img" alt="${item.name}" onerror="this.src='${NO_PHOTO_PLACEHOLDER}'">
+        <img src="${photo}" class="card-figma-img" alt="${item.name}" loading="lazy" decoding="async" onerror="this.src='${NO_PHOTO_PLACEHOLDER}'">
       </div>
       <div class="card-figma-body">
         <div class="card-figma-top-tags">

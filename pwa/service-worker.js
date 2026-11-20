@@ -1,5 +1,5 @@
-const CACHE_NAME = 'temubarang-static-v2';
-const DATA_CACHE_NAME = 'temubarang-data-v2';
+const CACHE_NAME = 'temubarang-static-v3';
+const DATA_CACHE_NAME = 'temubarang-data-v3';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -49,40 +49,44 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // 1. API Request: Network First -> Simpan ke DATA_CACHE -> Fallback ke cache jika offline
+  // 1. API Request:
+  // JIKA ONLINE: Jangan lakukan event.respondWith!
+  // Biarkan browser native HTTP cache yang menangani request sehingga muncul "(disk cache)" di DevTools Network tab!
   if (url.pathname.includes('/api/')) {
-    event.respondWith(
+    if (navigator.onLine) {
+      // Update cache di background untuk cadangan offline
       fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(DATA_CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        .then((res) => {
+          if (res && res.status === 200) {
+            caches.open(DATA_CACHE_NAME).then((cache) => cache.put(event.request, res));
           }
-          return networkResponse;
         })
-        .catch(async () => {
-          const cached = await caches.match(event.request, { ignoreSearch: true });
-          if (cached) return cached;
-          return new Response(
-            JSON.stringify({
-              success: false,
-              data: [],
-              _isOffline: true,
-              message: 'Mode offline: data diambil dari cache lokal.'
-            }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-          );
-        })
+        .catch(() => {});
+      return; // Browser native stack will handle it and show (disk cache)
+    }
+
+    // JIKA OFFLINE: Berikan dari Service Worker cache
+    event.respondWith(
+      caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+        if (cached) return cached;
+        return new Response(
+          JSON.stringify({
+            success: false,
+            data: [],
+            _isOffline: true,
+            message: 'Mode offline: data diambil dari cache lokal.'
+          }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        );
+      })
     );
     return;
   }
 
-  // 2. Static Assets (HTML, CSS, JS, Gambar): Cache First with Background Revalidation
+  // 2. Static Assets: Cache First with Background Revalidation
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-      // Jika sudah ada di cache, gunakan langsung
       if (cachedResponse) {
-        // Lakukan background fetch untuk memperbarui cache jika ada koneksi
         fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -93,7 +97,6 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
 
-      // Jika belum ada di cache, ambil dari network
       return fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
@@ -103,7 +106,6 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Jika offline dan permintaan berupa navigasi halaman, kembalikan index.html
           if (event.request.mode === 'navigate') {
             return caches.match('./index.html', { ignoreSearch: true });
           }
