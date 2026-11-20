@@ -1,4 +1,6 @@
-const CACHE_NAME = 'temubarang-v5027';
+const CACHE_NAME = 'temubarang-app-v5035';
+const DATA_CACHE_NAME = 'temubarang-data-v5035';
+
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -24,7 +26,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys
+          .filter((key) => key !== CACHE_NAME && key !== DATA_CACHE_NAME)
+          .map((key) => caches.delete(key))
       );
     })
   );
@@ -32,32 +36,58 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Hanya cache request GET
+  // Hanya tangani GET requests
   if (event.request.method !== 'GET') return;
 
-  // Jika request ke API, gunakan Network First lalu fallback ke offline message jika gagal
-  if (event.request.url.includes('/api/')) {
+  const url = new URL(event.request.url);
+
+  // 1. API Calls: Network-First dengan Cache Fallback & Auto-Save ke DATA_CACHE
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(DATA_CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return new Response(
+            JSON.stringify({
+              success: false,
+              data: [],
+              _isOffline: true,
+              message: 'Mode offline: data belum tersimpan di cache.'
+            }),
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+        })
     );
     return;
   }
 
-  // Untuk file statis PWA: Network First agar perubahan logo/CSS langsung diterapkan
+  // 2. Static Assets (PWA Shell: HTML, CSS, JS, Gambar, Font):
+  // Stale-While-Revalidate: Respon instan dari cache jika ada, sambil perbarui dari network di background
   event.respondWith(
-    fetch(event.request).then((networkResponse) => {
-      if (networkResponse && networkResponse.ok) {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone);
+            });
+          }
           return networkResponse;
-        });
-      }
-      return networkResponse;
-    }).catch(() => {
-      return caches.match(event.request);
+        })
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
-

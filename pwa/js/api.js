@@ -5,26 +5,90 @@ const API_BASE_URL = isLocal
   ? (window.location.port === '3000' ? '' : 'http://localhost:3000')
   : '';
 
+// Helper Storage Cache untuk Mode Offline (Bulletproof LocalStorage Fallback)
+const TB_CACHE = {
+  get(key) {
+    try {
+      const item = localStorage.getItem(`tb_cache_${key}`);
+      return item ? JSON.parse(item) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+  set(key, data) {
+    try {
+      localStorage.setItem(`tb_cache_${key}`, JSON.stringify(data));
+    } catch (e) {
+      console.warn('Gagal menyimpan cache offline:', e);
+    }
+  }
+};
+
 const API = {
   // Categories
   async getCategories() {
-    const res = await fetch(`${API_BASE_URL}/api/categories`);
-    return res.json();
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/categories`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      TB_CACHE.set('categories', data);
+      return data;
+    } catch (err) {
+      console.warn('[TemuBarang Offline] Mengambil kategori dari cache...', err);
+      const cached = TB_CACHE.get('categories');
+      if (cached) return { ...cached, _isOffline: true };
+      return { success: false, data: [], _isOffline: true };
+    }
   },
 
   // Lost Items
   async getLostItems(params = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
-    return res.json();
+    const cacheKey = `lost_items_${query}`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      TB_CACHE.set(cacheKey, data);
+      if (!query) TB_CACHE.set('lost_items_all', data);
+      return data;
+    } catch (err) {
+      console.warn('[TemuBarang Offline] Mengambil barang hilang dari cache...', err);
+      const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
+      if (cached) return { ...cached, _isOffline: true };
+      return { success: false, data: [], _isOffline: true, message: 'Mode offline: belum ada data di cache.' };
+    }
   },
 
   async getLostItemById(id) {
-    const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
-    return res.json();
+    const cacheKey = `lost_item_${id}`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      TB_CACHE.set(cacheKey, data);
+      return data;
+    } catch (err) {
+      console.warn(`[TemuBarang Offline] Mengambil detail hilang #${id} dari cache...`, err);
+      const cached = TB_CACHE.get(cacheKey);
+      if (cached) return { ...cached, _isOffline: true };
+
+      // Fallback: Cari di cache daftar barang hilang yang pernah dimuat
+      const allLost = TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
+      if (allLost && Array.isArray(allLost.data)) {
+        const found = allLost.data.find((item) => String(item.id) === String(id));
+        if (found) {
+          return { success: true, data: found, _isOffline: true };
+        }
+      }
+      return { success: false, data: null, _isOffline: true, message: 'Detail barang tidak ditemukan di cache offline.' };
+    }
   },
 
   async createLostItem(data) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk mengirim laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/lost-items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -34,6 +98,9 @@ const API = {
   },
 
   async updateLostItem(id, data) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk memperbarui laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -43,6 +110,9 @@ const API = {
   },
 
   async deleteLostItem(id) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk menghapus laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`, {
       method: 'DELETE'
     });
@@ -52,16 +122,51 @@ const API = {
   // Found Items
   async getFoundItems(params = {}) {
     const query = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
-    return res.json();
+    const cacheKey = `found_items_${query}`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      TB_CACHE.set(cacheKey, data);
+      if (!query) TB_CACHE.set('found_items_all', data);
+      return data;
+    } catch (err) {
+      console.warn('[TemuBarang Offline] Mengambil barang temuan dari cache...', err);
+      const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
+      if (cached) return { ...cached, _isOffline: true };
+      return { success: false, data: [], _isOffline: true, message: 'Mode offline: belum ada data di cache.' };
+    }
   },
 
   async getFoundItemById(id) {
-    const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
-    return res.json();
+    const cacheKey = `found_item_${id}`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      TB_CACHE.set(cacheKey, data);
+      return data;
+    } catch (err) {
+      console.warn(`[TemuBarang Offline] Mengambil detail temuan #${id} dari cache...`, err);
+      const cached = TB_CACHE.get(cacheKey);
+      if (cached) return { ...cached, _isOffline: true };
+
+      // Fallback: Cari di cache daftar barang temuan yang pernah dimuat
+      const allFound = TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
+      if (allFound && Array.isArray(allFound.data)) {
+        const found = allFound.data.find((item) => String(item.id) === String(id));
+        if (found) {
+          return { success: true, data: found, _isOffline: true };
+        }
+      }
+      return { success: false, data: null, _isOffline: true, message: 'Detail barang tidak ditemukan di cache offline.' };
+    }
   },
 
   async createFoundItem(data) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk mengirim laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/found-items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -71,6 +176,9 @@ const API = {
   },
 
   async updateFoundItem(id, data) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk memperbarui laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -80,6 +188,9 @@ const API = {
   },
 
   async deleteFoundItem(id) {
+    if (!navigator.onLine) {
+      throw new Error('Anda sedang offline. Hubungkan kembali koneksi internet untuk menghapus laporan.');
+    }
     const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`, {
       method: 'DELETE'
     });

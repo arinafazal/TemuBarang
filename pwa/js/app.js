@@ -1141,9 +1141,32 @@ function formatStatusLabel(status, isFound) {
   return status === 'found' ? 'Sudah Ditemukan' : 'Sedang Dicari';
 }
 
+// Offline Detection & Notification
+function updateOnlineStatus() {
+  let banner = document.getElementById('tb-offline-banner');
+  if (!navigator.onLine) {
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'tb-offline-banner';
+      banner.className = 'offline-toast-banner';
+      banner.innerHTML = `
+        <span>⚡</span>
+        <span><strong>Mode Offline:</strong> Menampilkan data tersimpan dari cache lokal.</span>
+      `;
+      document.body.prepend(banner);
+    }
+  } else {
+    if (banner) banner.remove();
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
 // Global Listeners
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', () => {
   initPWA();
+  updateOnlineStatus();
   router();
 });
