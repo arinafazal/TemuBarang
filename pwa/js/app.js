@@ -215,7 +215,15 @@ async function renderDaftarHilang(container) {
     }
 
   } catch (err) {
-    container.innerHTML = `<div style="text-align:center; padding: 40px; color: #b91c1c;">Gagal memuat data: ${err.message}</div>`;
+    console.error('Error rendering lost page:', err);
+    container.innerHTML = `
+      <div class="empty-state-figma" style="padding: 40px 20px;">
+        <div class="empty-icon-figma">⚡</div>
+        <h3>Sedang Mode Offline</h3>
+        <p>Aplikasi sedang offline. Silakan sambungkan internet untuk memperbarui data terbaru.</p>
+        <button onclick="location.reload()" class="pill-btn-figma active" style="margin-top:14px; cursor:pointer;">Muat Ulang</button>
+      </div>
+    `;
   }
 }
 
@@ -387,7 +395,15 @@ async function renderDaftarTemuan(container) {
     }
 
   } catch (err) {
-    container.innerHTML = `<div style="text-align:center; padding: 40px; color: #b91c1c;">Gagal memuat data: ${err.message}</div>`;
+    console.error('Error rendering lost page:', err);
+    container.innerHTML = `
+      <div class="empty-state-figma" style="padding: 40px 20px;">
+        <div class="empty-icon-figma">⚡</div>
+        <h3>Sedang Mode Offline</h3>
+        <p>Aplikasi sedang offline. Silakan sambungkan internet untuk memperbarui data terbaru.</p>
+        <button onclick="location.reload()" class="pill-btn-figma active" style="margin-top:14px; cursor:pointer;">Muat Ulang</button>
+      </div>
+    `;
   }
 }
 
@@ -467,7 +483,15 @@ async function renderBeranda(container) {
     }
 
   } catch (e) {
-    container.innerHTML = `<div style="text-align:center; padding:40px; color:#b91c1c;">Gagal memuat beranda: ${e.message}</div>`;
+    console.error('Error rendering beranda:', e);
+    container.innerHTML = `
+      <div class="empty-state-figma" style="padding: 40px 20px;">
+        <div class="empty-icon-figma">⚡</div>
+        <h3>Sedang Mode Offline</h3>
+        <p>Aplikasi sedang offline. Data yang ditampilkan adalah data cache tersimpan.</p>
+        <button onclick="location.reload()" class="pill-btn-figma active" style="margin-top:14px; cursor:pointer;">Muat Ulang</button>
+      </div>
+    `;
   }
 }
 
@@ -1041,7 +1065,15 @@ async function renderDetail(container, id, type) {
     });
 
   } catch (err) {
-    container.innerHTML = `<div style="text-align:center; padding:40px; color:#b91c1c;">Gagal memuat detail: ${err.message}</div>`;
+    console.error('Error rendering detail:', err);
+    container.innerHTML = `
+      <div class="empty-state-figma" style="padding: 40px 20px;">
+        <div class="empty-icon-figma">⚡</div>
+        <h3>Detail Tidak Tersedia Saat Offline</h3>
+        <p>Barang ini belum sempat tersimpan di cache memori perangkat.</p>
+        <a href="#/${isFound ? 'temuan' : 'hilang'}" class="pill-btn-figma active" style="margin-top:14px; text-decoration:none; display:inline-flex;">Kembali ke Daftar</a>
+      </div>
+    `;
   }
 }
 

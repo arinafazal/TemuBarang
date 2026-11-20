@@ -31,13 +31,17 @@ const API = {
       const res = await fetch(`${API_BASE_URL}/api/categories`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      TB_CACHE.set('categories', data);
+      if (data && data.data && data.data.length) {
+        TB_CACHE.set('categories', data);
+      }
       return data;
     } catch (err) {
       console.warn('[TemuBarang Offline] Mengambil kategori dari cache...', err);
       const cached = TB_CACHE.get('categories');
-      if (cached) return { ...cached, _isOffline: true };
-      return { success: false, data: [], _isOffline: true };
+      if (cached && cached.data && cached.data.length) {
+        return { ...cached, _isOffline: true };
+      }
+      throw err;
     }
   },
 
@@ -49,14 +53,18 @@ const API = {
       const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      TB_CACHE.set(cacheKey, data);
-      if (!query) TB_CACHE.set('lost_items_all', data);
+      if (data && data.data && data.data.length) {
+        TB_CACHE.set(cacheKey, data);
+        if (!query) TB_CACHE.set('lost_items_all', data);
+      }
       return data;
     } catch (err) {
       console.warn('[TemuBarang Offline] Mengambil barang hilang dari cache...', err);
       const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
-      if (cached) return { ...cached, _isOffline: true };
-      return { success: false, data: [], _isOffline: true, message: 'Mode offline: belum ada data di cache.' };
+      if (cached && cached.data && cached.data.length) {
+        return { ...cached, _isOffline: true };
+      }
+      throw err;
     }
   },
 
@@ -66,12 +74,14 @@ const API = {
       const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      TB_CACHE.set(cacheKey, data);
+      if (data && data.data) {
+        TB_CACHE.set(cacheKey, data);
+      }
       return data;
     } catch (err) {
       console.warn(`[TemuBarang Offline] Mengambil detail hilang #${id} dari cache...`, err);
       const cached = TB_CACHE.get(cacheKey);
-      if (cached) return { ...cached, _isOffline: true };
+      if (cached && cached.data) return { ...cached, _isOffline: true };
 
       // Fallback: Cari di cache daftar barang hilang yang pernah dimuat
       const allLost = TB_CACHE.get('lost_items_all') || TB_CACHE.get('lost_items_');
@@ -81,7 +91,7 @@ const API = {
           return { success: true, data: found, _isOffline: true };
         }
       }
-      return { success: false, data: null, _isOffline: true, message: 'Detail barang tidak ditemukan di cache offline.' };
+      throw err;
     }
   },
 
@@ -127,14 +137,18 @@ const API = {
       const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      TB_CACHE.set(cacheKey, data);
-      if (!query) TB_CACHE.set('found_items_all', data);
+      if (data && data.data && data.data.length) {
+        TB_CACHE.set(cacheKey, data);
+        if (!query) TB_CACHE.set('found_items_all', data);
+      }
       return data;
     } catch (err) {
       console.warn('[TemuBarang Offline] Mengambil barang temuan dari cache...', err);
       const cached = TB_CACHE.get(cacheKey) || TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
-      if (cached) return { ...cached, _isOffline: true };
-      return { success: false, data: [], _isOffline: true, message: 'Mode offline: belum ada data di cache.' };
+      if (cached && cached.data && cached.data.length) {
+        return { ...cached, _isOffline: true };
+      }
+      throw err;
     }
   },
 
@@ -144,12 +158,14 @@ const API = {
       const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      TB_CACHE.set(cacheKey, data);
+      if (data && data.data) {
+        TB_CACHE.set(cacheKey, data);
+      }
       return data;
     } catch (err) {
       console.warn(`[TemuBarang Offline] Mengambil detail temuan #${id} dari cache...`, err);
       const cached = TB_CACHE.get(cacheKey);
-      if (cached) return { ...cached, _isOffline: true };
+      if (cached && cached.data) return { ...cached, _isOffline: true };
 
       // Fallback: Cari di cache daftar barang temuan yang pernah dimuat
       const allFound = TB_CACHE.get('found_items_all') || TB_CACHE.get('found_items_');
@@ -159,7 +175,7 @@ const API = {
           return { success: true, data: found, _isOffline: true };
         }
       }
-      return { success: false, data: null, _isOffline: true, message: 'Detail barang tidak ditemukan di cache offline.' };
+      throw err;
     }
   },
 

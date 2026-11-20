@@ -1,5 +1,5 @@
-const CACHE_NAME = 'temubarang-app-v5035';
-const DATA_CACHE_NAME = 'temubarang-data-v5035';
+const CACHE_NAME = 'temubarang-static-v2';
+const DATA_CACHE_NAME = 'temubarang-data-v2';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -13,15 +13,23 @@ const ASSETS_TO_CACHE = [
   './icons/icon-app-512.png'
 ];
 
+// Install: Cache semua asset statis utama
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of ASSETS_TO_CACHE) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn('[SW] Gagal cache asset saat install:', asset, err);
+        }
+      }
     })
   );
-  self.skipWaiting();
 });
 
+// Activate: Bersihkan cache versi lama dan klaim client
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,59 +43,71 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Fetch: Tangani semua request offline & online
 self.addEventListener('fetch', (event) => {
-  // Hanya tangani GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // 1. API Calls: Network-First dengan Cache Fallback & Auto-Save ke DATA_CACHE
+  // 1. API Request: Network First -> Simpan ke DATA_CACHE -> Fallback ke cache jika offline
   if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
-            caches.open(DATA_CACHE_NAME).then((cache) => {
-              cache.put(event.request, clone);
-            });
+            caches.open(DATA_CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return networkResponse;
         })
         .catch(async () => {
-          const cached = await caches.match(event.request);
+          const cached = await caches.match(event.request, { ignoreSearch: true });
           if (cached) return cached;
           return new Response(
             JSON.stringify({
               success: false,
               data: [],
               _isOffline: true,
-              message: 'Mode offline: data belum tersimpan di cache.'
+              message: 'Mode offline: data diambil dari cache lokal.'
             }),
-            { headers: { 'Content-Type': 'application/json' } }
+            { status: 503, headers: { 'Content-Type': 'application/json' } }
           );
         })
     );
     return;
   }
 
-  // 2. Static Assets (PWA Shell: HTML, CSS, JS, Gambar, Font):
-  // Stale-While-Revalidate: Respon instan dari cache jika ada, sambil perbarui dari network di background
+  // 2. Static Assets (HTML, CSS, JS, Gambar): Cache First with Background Revalidation
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+      // Jika sudah ada di cache, gunakan langsung
+      if (cachedResponse) {
+        // Lakukan background fetch untuk memperbarui cache jika ada koneksi
+        fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
+            }
+          })
+          .catch(() => {});
+        return cachedResponse;
+      }
+
+      // Jika belum ada di cache, ambil dari network
+      return fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, clone);
-            });
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
-
-      return cachedResponse || fetchPromise;
+        .catch(() => {
+          // Jika offline dan permintaan berupa navigasi halaman, kembalikan index.html
+          if (event.request.mode === 'navigate') {
+            return caches.match('./index.html', { ignoreSearch: true });
+          }
+        });
     })
   );
 });
