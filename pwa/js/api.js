@@ -3,7 +3,7 @@ const isFile = window.location.protocol === 'file:';
 const isLocal = isFile || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
 const API_BASE_URL = isLocal
   ? (window.location.port === '3000' ? '' : 'http://localhost:3000')
-  : 'https://temu-barang-nine.vercel.app';
+  : '';
 
 const API = {
   // Categories
