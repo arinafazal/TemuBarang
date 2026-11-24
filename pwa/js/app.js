@@ -866,7 +866,29 @@ async function renderFormLapor(container) {
 // ==========================================================================
 // 5. PROFIL PENGEMBANG
 // ==========================================================================
-function renderProfil(container) {
+async function renderProfil(container) {
+  let archivedList = [];
+  try {
+    const [lostRes, foundRes] = await Promise.all([
+      API.getLostItems(),
+      API.getFoundItems()
+    ]);
+    const dbLost = (lostRes.data || []).filter(it => it.status === 'archived').map(it => ({ ...it, _archiveType: 'hilang' }));
+    const dbFound = (foundRes.data || []).filter(it => it.status === 'archived').map(it => ({ ...it, _archiveType: 'temuan' }));
+    const local = window.TB_ARCHIVE ? window.TB_ARCHIVE.getArchivedItems() : [];
+
+    const seen = new Set();
+    [...dbLost, ...dbFound, ...local].forEach(item => {
+      const key = `${item.id}-${item._archiveType || 'temuan'}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        archivedList.push(item);
+      }
+    });
+  } catch (e) {
+    archivedList = window.TB_ARCHIVE ? window.TB_ARCHIVE.getArchivedItems() : [];
+  }
+
   container.innerHTML = `
     <!-- Content Header -->
     <div class="content-header-row">
@@ -937,7 +959,7 @@ function renderProfil(container) {
       </div>
     </div>
 
-    <!-- Kotak Arsip Laporan (Soft Delete Feature - Sesuai Modul 5) -->
+    <!-- Kotak Arsip Laporan (Soft Delete Feature - Tersinkron ke Database) -->
     <div class="profil-card-figma" style="margin-top:24px; text-align:left; padding:28px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:10px;">
@@ -946,18 +968,18 @@ function renderProfil(container) {
           </div>
           <div>
             <h3 style="font-size:16px; font-weight:800; color:var(--text-dark); margin:0;">Kotak Arsip Laporan (Soft Delete)</h3>
-            <p style="font-size:12px; color:var(--text-gray); margin:2px 0 0;">Arsip hanya tersimpan di browser ini dan menyembunyikan laporan dari daftar pada perangkat ini.</p>
+            <p style="font-size:12px; color:var(--text-gray); margin:2px 0 0;">Laporan yang diarsipkan disembunyikan dari daftar publik dan tersinkron ke semua perangkat.</p>
           </div>
         </div>
         <span style="font-size:12px; font-weight:700; background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:9999px;">
-          ${(window.TB_ARCHIVE ? window.TB_ARCHIVE.getArchivedItems().length : 0)} laporan
+          ${archivedList.length} laporan
         </span>
       </div>
 
       <div id="archived-items-container">
-        ${(window.TB_ARCHIVE && window.TB_ARCHIVE.getArchivedItems().length) ? `
+        ${archivedList.length ? `
           <div style="display:flex; flex-direction:column; gap:10px;">
-            ${window.TB_ARCHIVE.getArchivedItems().map(item => `
+            ${archivedList.map(item => `
               <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f8fafc; border:1px solid var(--border-light); border-radius:12px; flex-wrap:wrap; gap:10px;">
                 <div>
                   <div style="font-weight:700; font-size:14px; color:var(--text-dark);">${item.name}</div>
@@ -965,7 +987,7 @@ function renderProfil(container) {
                     Tipe: <span style="font-weight:600; color:#2563eb;">${item._archiveType === 'temuan' ? 'Barang Temuan' : 'Barang Hilang'}</span> · Lokasi: ${item.location || '-'}
                   </div>
                 </div>
-                <button class="pill-btn-figma active" onclick="restoreArchiveItem('${item.id}', '${item._archiveType}')" style="padding:6px 14px; font-size:12px; cursor:pointer;">
+                <button class="pill-btn-figma active" onclick="restoreArchiveItem('${item.id}', '${item._archiveType || 'temuan'}')" style="padding:6px 14px; font-size:12px; cursor:pointer;">
                   🔄 Pulihkan ke Publik
                 </button>
               </div>
@@ -982,14 +1004,22 @@ function renderProfil(container) {
 }
 
 // Global Restore Handler for Archived Items
-window.restoreArchiveItem = function (id, type) {
+window.restoreArchiveItem = async function (id, type) {
   if (confirm('Pulihkan laporan ini agar kembali tampil di daftar publik?')) {
-    if (window.TB_ARCHIVE && window.TB_ARCHIVE.restoreItemLocally(id, type)) {
+    try {
+      if (type === 'temuan') {
+        await API.updateFoundItem(id, { status: 'available' });
+      } else {
+        await API.updateLostItem(id, { status: 'searching' });
+      }
+      if (window.TB_ARCHIVE) {
+        window.TB_ARCHIVE.restoreItemLocally(id, type);
+      }
       alert('Laporan berhasil dipulihkan!');
       const container = document.getElementById('app-content');
       if (container) renderProfil(container);
-    } else {
-      alert('Laporan gagal dipulihkan. Penyimpanan browser mungkin tidak tersedia.');
+    } catch (e) {
+      alert('Gagal memulihkan laporan: ' + e.message);
     }
   }
 };
@@ -1086,7 +1116,7 @@ async function renderDetail(container, id, type) {
                   : (item.status === 'searching' ? 'Tandai Sudah Ditemukan' : 'Ubah ke Sedang Dicari')}
               </button>
               <button class="btn-secondary-action" id="btn-archive-report" style="flex:1; min-width:130px; background:#f8fafc; border-color:#cbd5e1; color:#334155;">
-                📦 Arsipkan (Soft Delete)
+                ${item.status === 'archived' ? '🔄 Pulihkan ke Publik' : '📦 Arsipkan (Soft Delete)'}
               </button>
               <button class="btn-danger-action" id="btn-delete-report" style="flex:1; min-width:130px;">
                 Hapus Permanen
@@ -1099,13 +1129,32 @@ async function renderDetail(container, id, type) {
 
     const archiveBtn = document.getElementById('btn-archive-report');
     if (archiveBtn) {
-      archiveBtn.addEventListener('click', () => {
-        if (confirm(`Arsipkan laporan "${item.name}" di browser ini? Laporan hanya akan disembunyikan dari daftar pada perangkat ini.`)) {
-          if (window.TB_ARCHIVE.archiveItemLocally(item, isFound ? 'temuan' : 'hilang')) {
-            alert('Laporan berhasil diarsipkan di perangkat ini.');
-            location.hash = `#/${isFound ? 'temuan' : 'hilang'}`;
-          } else {
-            alert('Laporan gagal diarsipkan. Penyimpanan browser mungkin tidak tersedia.');
+      archiveBtn.addEventListener('click', async () => {
+        const isArchived = item.status === 'archived';
+        if (isArchived) {
+          if (confirm(`Pulihkan laporan "${item.name}" agar kembali tampil di daftar publik?`)) {
+            try {
+              const restoredStatus = isFound ? 'available' : 'searching';
+              if (isFound) await API.updateFoundItem(id, { status: restoredStatus });
+              else await API.updateLostItem(id, { status: restoredStatus });
+              if (window.TB_ARCHIVE) window.TB_ARCHIVE.restoreItemLocally(id, isFound ? 'temuan' : 'hilang');
+              alert('Laporan berhasil dipulihkan ke publik!');
+              location.hash = `#/${isFound ? 'temuan' : 'hilang'}`;
+            } catch (e) {
+              alert('Gagal memulihkan laporan: ' + e.message);
+            }
+          }
+        } else {
+          if (confirm(`Arsipkan laporan "${item.name}"? Laporan akan disembunyikan dari daftar publik dan tersinkron ke semua perangkat.`)) {
+            try {
+              if (isFound) await API.updateFoundItem(id, { status: 'archived' });
+              else await API.updateLostItem(id, { status: 'archived' });
+              if (window.TB_ARCHIVE) window.TB_ARCHIVE.archiveItemLocally(item, isFound ? 'temuan' : 'hilang');
+              alert('Laporan berhasil diarsipkan di database!');
+              location.hash = `#/${isFound ? 'temuan' : 'hilang'}`;
+            } catch (e) {
+              alert('Gagal mengarsipkan laporan: ' + e.message);
+            }
           }
         }
       });
@@ -1241,6 +1290,7 @@ function parseReporterInfo(str, defaultRole = 'Petugas') {
 }
 
 function formatStatusLabel(status, isFound) {
+  if (status === 'archived') return 'Diarsipkan (Soft Delete)';
   if (isFound) {
     return status === 'claimed' ? 'Sudah Diklaim' : 'Tersedia';
   }

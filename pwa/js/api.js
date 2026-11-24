@@ -154,85 +154,89 @@ const API = {
   // Categories
   async getCategories() {
     const cacheKey = 'categories';
-    const cached = getCached(cacheKey);
-    if (cached && cached.data && cached.data.length) {
-      return { ...cached, _fromDiskCache: true };
+
+    // 1. Jika online: Selalu fetch dari database agar sinkron lintas perangkat
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) setCached(cacheKey, data);
+          return data;
+        }
+      } catch (err) {
+        console.warn('[TemuBarang] Fetch kategori online gagal, beralih ke cache disk...', err);
+      }
     }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/categories`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.data && data.data.length) {
-        setCached(cacheKey, data);
-      }
-      return data;
-    } catch (err) {
-      console.warn('[TemuBarang] Mengambil kategori dari cache...', err);
-      if (cached && cached.data && cached.data.length) {
-        return { ...cached, _isOffline: true };
-      }
-      throw err;
+    // 2. Jika offline / fetch gagal: Ambil dari cache disk
+    const cached = getCached(cacheKey);
+    if (cached && cached.data && cached.data.length) {
+      return { ...cached, _isOffline: true };
     }
+    return { success: true, data: DEFAULT_CATEGORIES, _isOffline: true };
   },
 
   // Lost Items
   async getLostItems(params = {}) {
     const query = new URLSearchParams(params).toString();
     const cacheKey = `lost_items_${query}`;
+
+    // 1. Jika online: Selalu fetch dari database agar sinkron lintas perangkat
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) {
+            setCached(cacheKey, data);
+            if (!query) setCached('lost_items_all', data);
+          }
+          return data;
+        }
+      } catch (err) {
+        console.warn('[TemuBarang] Fetch barang hilang online gagal, beralih ke cache disk...', err);
+      }
+    }
+
+    // 2. Jika offline / fetch gagal: Ambil dari cache disk
     const cached = getCached(cacheKey) || (!query ? getCached('lost_items_all') : null);
-
-    // Cek disk/memory cache terlebih dahulu
     if (cached && cached.data && cached.data.length) {
-      return { ...cached, _fromDiskCache: true };
+      return { ...cached, _isOffline: true };
     }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/lost-items${query ? '?' + query : ''}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.data && data.data.length) {
-        setCached(cacheKey, data);
-        if (!query) setCached('lost_items_all', data);
-      }
-      return data;
-    } catch (err) {
-      console.warn('[TemuBarang] Mengambil barang hilang dari cache...', err);
-      if (cached && cached.data && cached.data.length) {
-        return { ...cached, _isOffline: true };
-      }
-      throw err;
-    }
+    return { success: true, data: DEFAULT_LOST_ITEMS, _isOffline: true };
   },
 
   async getLostItemById(id) {
     const cacheKey = `lost_item_${id}`;
-    const cached = getCached(cacheKey);
-    if (cached && cached.data) {
-      return { ...cached, _fromDiskCache: true };
-    }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.data) {
-        setCached(cacheKey, data);
-      }
-      return data;
-    } catch (err) {
-      console.warn(`[TemuBarang] Mengambil detail hilang #${id} dari cache...`, err);
-      if (cached && cached.data) return { ...cached, _isOffline: true };
-
-      const allLost = getCached('lost_items_all') || getCached('lost_items_');
-      if (allLost && Array.isArray(allLost.data)) {
-        const found = allLost.data.find((item) => String(item.id) === String(id));
-        if (found) {
-          return { success: true, data: found, _isOffline: true };
+    // 1. Jika online: Selalu fetch detail terbaru
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/lost-items/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) setCached(cacheKey, data);
+          return data;
         }
+      } catch (err) {
+        console.warn(`[TemuBarang] Fetch detail hilang #${id} gagal, beralih ke cache...`, err);
       }
-      throw err;
     }
+
+    // 2. Jika offline / fetch gagal: Ambil dari cache
+    const cached = getCached(cacheKey);
+    if (cached && cached.data) return { ...cached, _isOffline: true };
+
+    const allLost = getCached('lost_items_all') || getCached('lost_items_');
+    if (allLost && Array.isArray(allLost.data)) {
+      const found = allLost.data.find((item) => String(item.id) === String(id));
+      if (found) {
+        return { success: true, data: found, _isOffline: true };
+      }
+    }
+    const defaultItem = DEFAULT_LOST_ITEMS.find((item) => String(item.id) === String(id)) || DEFAULT_LOST_ITEMS[0];
+    return { success: true, data: defaultItem, _isOffline: true };
   },
 
   async createLostItem(data) {
@@ -279,59 +283,62 @@ const API = {
   async getFoundItems(params = {}) {
     const query = new URLSearchParams(params).toString();
     const cacheKey = `found_items_${query}`;
+
+    // 1. Jika online: Selalu fetch dari database agar sinkron lintas perangkat
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) {
+            setCached(cacheKey, data);
+            if (!query) setCached('found_items_all', data);
+          }
+          return data;
+        }
+      } catch (err) {
+        console.warn('[TemuBarang] Fetch barang temuan online gagal, beralih ke cache disk...', err);
+      }
+    }
+
+    // 2. Jika offline / fetch gagal: Ambil dari cache disk
     const cached = getCached(cacheKey) || (!query ? getCached('found_items_all') : null);
-
-    // Cek disk/memory cache terlebih dahulu
     if (cached && cached.data && cached.data.length) {
-      return { ...cached, _fromDiskCache: true };
+      return { ...cached, _isOffline: true };
     }
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/found-items${query ? '?' + query : ''}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.data && data.data.length) {
-        setCached(cacheKey, data);
-        if (!query) setCached('found_items_all', data);
-      }
-      return data;
-    } catch (err) {
-      console.warn('[TemuBarang] Mengambil barang temuan dari cache...', err);
-      if (cached && cached.data && cached.data.length) {
-        return { ...cached, _isOffline: true };
-      }
-      throw err;
-    }
+    return { success: true, data: DEFAULT_FOUND_ITEMS, _isOffline: true };
   },
 
   async getFoundItemById(id) {
     const cacheKey = `found_item_${id}`;
-    const cached = getCached(cacheKey);
-    if (cached && cached.data) {
-      return { ...cached, _fromDiskCache: true };
-    }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data && data.data) {
-        setCached(cacheKey, data);
-      }
-      return data;
-    } catch (err) {
-      console.warn(`[TemuBarang] Mengambil detail temuan #${id} dari cache...`, err);
-      if (cached && cached.data) return { ...cached, _isOffline: true };
-
-      const allFound = getCached('found_items_all') || getCached('found_items_');
-      if (allFound && Array.isArray(allFound.data)) {
-        const found = allFound.data.find((item) => String(item.id) === String(id));
-        if (found) {
-          return { success: true, data: found, _isOffline: true };
+    // 1. Jika online: Selalu fetch detail terbaru
+    if (navigator.onLine) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/found-items/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) setCached(cacheKey, data);
+          return data;
         }
+      } catch (err) {
+        console.warn(`[TemuBarang] Fetch detail temuan #${id} gagal, beralih ke cache...`, err);
       }
-      throw err;
     }
+
+    // 2. Jika offline / fetch gagal: Ambil dari cache
+    const cached = getCached(cacheKey);
+    if (cached && cached.data) return { ...cached, _isOffline: true };
+
+    const allFound = getCached('found_items_all') || getCached('found_items_');
+    if (allFound && Array.isArray(allFound.data)) {
+      const found = allFound.data.find((item) => String(item.id) === String(id));
+      if (found) {
+        return { success: true, data: found, _isOffline: true };
+      }
+    }
+    const defaultItem = DEFAULT_FOUND_ITEMS.find((item) => String(item.id) === String(id)) || DEFAULT_FOUND_ITEMS[0];
+    return { success: true, data: defaultItem, _isOffline: true };
   },
 
   async createFoundItem(data) {
