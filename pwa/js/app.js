@@ -524,8 +524,8 @@ async function renderDaftarTemuan(container) {
 async function renderBeranda(container) {
   try {
     const [foundRes, lostRes] = await Promise.all([
-      API.getFoundItems({ limit: 4 }),
-      API.getLostItems({ limit: 4 })
+      API.getFoundItems(),
+      API.getLostItems()
     ]);
 
     const foundItems = (foundRes.data || []).filter(it => !window.TB_ARCHIVE || !window.TB_ARCHIVE.isItemArchived(it.id, 'temuan'));
@@ -556,33 +556,129 @@ async function renderBeranda(container) {
       <!-- KPI Summary Cards -->
       <div class="stats-kpi-grid">
         <div class="stat-kpi-card" onclick="location.hash='#/temuan'">
-          <div class="stat-kpi-num" style="color:var(--primary-blue);">${foundRes.count !== undefined ? foundRes.count : foundItems.length}</div>
+          <div class="stat-kpi-num" style="color:var(--primary-blue);">${foundItems.length}</div>
           <div class="stat-kpi-label">Barang Temuan Tersedia</div>
         </div>
         <div class="stat-kpi-card" onclick="location.hash='#/hilang'">
-          <div class="stat-kpi-num" style="color:var(--amber-text);">${lostRes.count !== undefined ? lostRes.count : lostItems.length}</div>
+          <div class="stat-kpi-num" style="color:var(--amber-text);">${lostItems.length}</div>
           <div class="stat-kpi-label">Barang Hilang Dicari</div>
         </div>
       </div>
 
-      <!-- Recent Found Section -->
+      <!-- Recent Found Section (Pagination: Default 3 Barang) -->
       <div class="section-head-row">
         <h2 class="section-head-title">Barang Temuan Terbaru</h2>
-        <a href="#/temuan" class="btn-see-all-figma">Lihat Semua ›</a>
+        <a href="#/temuan" class="btn-see-all-figma">Buka Halaman Temuan ›</a>
       </div>
-      <div class="cards-grid-figma" id="beranda-found-feed">
-        ${foundItems.length ? foundItems.map(it => renderItemCardHTML(it, 'temuan')).join('') : '<div class="empty-state-figma" style="padding:28px;"><p>Belum ada data barang temuan.</p></div>'}
-      </div>
+      <div class="cards-grid-figma" id="beranda-found-feed"></div>
+      <div class="pagination-container-figma" id="beranda-found-pagination"></div>
 
-      <!-- Recent Lost Section -->
+      <!-- Recent Lost Section (Pagination: Default 3 Barang) -->
       <div class="section-head-row" style="margin-top:36px;">
         <h2 class="section-head-title">Barang Hilang Sedang Dicari</h2>
-        <a href="#/hilang" class="btn-see-all-figma">Lihat Semua ›</a>
+        <a href="#/hilang" class="btn-see-all-figma">Buka Halaman Hilang ›</a>
       </div>
-      <div class="cards-grid-figma" id="beranda-lost-feed">
-        ${lostItems.length ? lostItems.map(it => renderItemCardHTML(it, 'hilang')).join('') : '<div class="empty-state-figma" style="padding:28px;"><p>Belum ada data barang hilang.</p></div>'}
-      </div>
+      <div class="cards-grid-figma" id="beranda-lost-feed"></div>
+      <div class="pagination-container-figma" id="beranda-lost-pagination"></div>
     `;
+
+    // Pagination untuk Barang Temuan di Beranda
+    let visibleFound = 3;
+    const renderBerandaFound = () => {
+      const feed = document.getElementById('beranda-found-feed');
+      const pag = document.getElementById('beranda-found-pagination');
+      if (!feed) return;
+
+      if (!foundItems.length) {
+        feed.innerHTML = '<div class="empty-state-figma" style="padding:28px;"><p>Belum ada data barang temuan.</p></div>';
+        if (pag) pag.innerHTML = '';
+        return;
+      }
+
+      const visible = foundItems.slice(0, visibleFound);
+      feed.innerHTML = visible.map(it => renderItemCardHTML(it, 'temuan')).join('');
+
+      if (pag) {
+        if (foundItems.length <= 3) {
+          pag.innerHTML = '';
+        } else if (visibleFound < foundItems.length) {
+          pag.innerHTML = `
+            <button class="btn-load-more-figma" id="btn-beranda-found-more">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              Lihat Selengkapnya (${foundItems.length - visibleFound} barang temuan tersisa) ▾
+            </button>
+            <div class="pagination-info-text">Menampilkan 3 dari ${foundItems.length} barang temuan</div>
+          `;
+          document.getElementById('btn-beranda-found-more')?.addEventListener('click', () => {
+            visibleFound = foundItems.length;
+            renderBerandaFound();
+          });
+        } else {
+          pag.innerHTML = `
+            <button class="btn-load-more-figma btn-collapse-figma" id="btn-beranda-found-less">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              Tampilkan Lebih Sedikit (3 Barang) ▴
+            </button>
+            <div class="pagination-info-text">Menampilkan semua ${foundItems.length} barang temuan</div>
+          `;
+          document.getElementById('btn-beranda-found-less')?.addEventListener('click', () => {
+            visibleFound = 3;
+            renderBerandaFound();
+            document.getElementById('beranda-found-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
+      }
+    };
+    renderBerandaFound();
+
+    // Pagination untuk Barang Hilang di Beranda
+    let visibleLost = 3;
+    const renderBerandaLost = () => {
+      const feed = document.getElementById('beranda-lost-feed');
+      const pag = document.getElementById('beranda-lost-pagination');
+      if (!feed) return;
+
+      if (!lostItems.length) {
+        feed.innerHTML = '<div class="empty-state-figma" style="padding:28px;"><p>Belum ada data barang hilang.</p></div>';
+        if (pag) pag.innerHTML = '';
+        return;
+      }
+
+      const visible = lostItems.slice(0, visibleLost);
+      feed.innerHTML = visible.map(it => renderItemCardHTML(it, 'hilang')).join('');
+
+      if (pag) {
+        if (lostItems.length <= 3) {
+          pag.innerHTML = '';
+        } else if (visibleLost < lostItems.length) {
+          pag.innerHTML = `
+            <button class="btn-load-more-figma" id="btn-beranda-lost-more">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              Lihat Selengkapnya (${lostItems.length - visibleLost} barang hilang tersisa) ▾
+            </button>
+            <div class="pagination-info-text">Menampilkan 3 dari ${lostItems.length} barang hilang</div>
+          `;
+          document.getElementById('btn-beranda-lost-more')?.addEventListener('click', () => {
+            visibleLost = lostItems.length;
+            renderBerandaLost();
+          });
+        } else {
+          pag.innerHTML = `
+            <button class="btn-load-more-figma btn-collapse-figma" id="btn-beranda-lost-less">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+              Tampilkan Lebih Sedikit (3 Barang) ▴
+            </button>
+            <div class="pagination-info-text">Menampilkan semua ${lostItems.length} barang hilang</div>
+          `;
+          document.getElementById('btn-beranda-lost-less')?.addEventListener('click', () => {
+            visibleLost = 3;
+            renderBerandaLost();
+            document.getElementById('beranda-lost-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
+      }
+    };
+    renderBerandaLost();
 
     const bInput = document.getElementById('beranda-search-input');
     if (bInput) {
@@ -1092,36 +1188,85 @@ async function renderProfil(container) {
             <p style="font-size:12px; color:var(--text-gray); margin:2px 0 0;">Laporan yang diarsipkan disembunyikan dari daftar publik dan tersinkron ke semua perangkat.</p>
           </div>
         </div>
-        <span style="font-size:12px; font-weight:700; background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:9999px;">
+        <span style="font-size:12px; font-weight:700; background:#f1f5f9; color:#475569; padding:4px 10px; border-radius:9999px;" id="archived-counter-badge">
           ${archivedList.length} laporan
         </span>
       </div>
 
-      <div id="archived-items-container">
-        ${archivedList.length ? `
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            ${archivedList.map(item => `
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f8fafc; border:1px solid var(--border-light); border-radius:12px; flex-wrap:wrap; gap:10px;">
-                <div>
-                  <div style="font-weight:700; font-size:14px; color:var(--text-dark);">${item.name}</div>
-                  <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">
-                    Tipe: <span style="font-weight:600; color:#2563eb;">${item._archiveType === 'temuan' ? 'Barang Temuan' : 'Barang Hilang'}</span> · Lokasi: ${item.location || '-'}
-                  </div>
-                </div>
-                <button class="pill-btn-figma active" onclick="restoreArchiveItem('${item.id}', '${item._archiveType || 'temuan'}')" style="padding:6px 14px; font-size:12px; cursor:pointer;">
-                  🔄 Pulihkan ke Publik
-                </button>
-              </div>
-            `).join('')}
-          </div>
-        ` : `
-          <div style="text-align:center; padding:28px 16px; color:var(--text-gray); font-size:13px; background:#f8fafc; border-radius:12px; border:1px dashed var(--border-color);">
-            Belum ada laporan yang diarsipkan. Anda dapat mengarsipkan laporan dari tombol "📦 Arsipkan" di halaman detail barang.
-          </div>
-        `}
-      </div>
+      <div id="archived-items-container"></div>
+      <div class="pagination-container-figma" id="archived-pagination-wrap"></div>
     </div>
   `;
+
+  // Pagination untuk Kotak Arsip di Profil (Default: 3 Arsip)
+  let visibleArchived = 3;
+  const renderArchivedFeed = () => {
+    const containerEl = document.getElementById('archived-items-container');
+    const pagEl = document.getElementById('archived-pagination-wrap');
+    if (!containerEl) return;
+
+    if (!archivedList.length) {
+      containerEl.innerHTML = `
+        <div style="text-align:center; padding:28px 16px; color:var(--text-gray); font-size:13px; background:#f8fafc; border-radius:12px; border:1px dashed var(--border-color);">
+          Belum ada laporan yang diarsipkan. Anda dapat mengarsipkan laporan dari tombol "📦 Arsipkan" di halaman detail barang.
+        </div>
+      `;
+      if (pagEl) pagEl.innerHTML = '';
+      return;
+    }
+
+    const visibleItems = archivedList.slice(0, visibleArchived);
+    containerEl.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${visibleItems.map(item => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f8fafc; border:1px solid var(--border-light); border-radius:12px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="font-weight:700; font-size:14px; color:var(--text-dark);">${item.name}</div>
+              <div style="font-size:12px; color:var(--text-gray); margin-top:2px;">
+                Tipe: <span style="font-weight:600; color:#2563eb;">${item._archiveType === 'temuan' ? 'Barang Temuan' : 'Barang Hilang'}</span> · Lokasi: ${item.location || '-'}
+              </div>
+            </div>
+            <button class="pill-btn-figma active" onclick="restoreArchiveItem('${item.id}', '${item._archiveType || 'temuan'}')" style="padding:6px 14px; font-size:12px; cursor:pointer;">
+              🔄 Pulihkan ke Publik
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    if (pagEl) {
+      if (archivedList.length <= 3) {
+        pagEl.innerHTML = '';
+      } else if (visibleArchived < archivedList.length) {
+        pagEl.innerHTML = `
+          <button class="btn-load-more-figma" id="btn-archived-more">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            Lihat Selengkapnya (${archivedList.length - visibleArchived} arsip tersisa) ▾
+          </button>
+          <div class="pagination-info-text">Menampilkan 3 dari ${archivedList.length} arsip tersimpan</div>
+        `;
+        document.getElementById('btn-archived-more')?.addEventListener('click', () => {
+          visibleArchived = archivedList.length;
+          renderArchivedFeed();
+        });
+      } else {
+        pagEl.innerHTML = `
+          <button class="btn-load-more-figma btn-collapse-figma" id="btn-archived-less">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            Tampilkan Lebih Sedikit (3 Arsip) ▴
+          </button>
+          <div class="pagination-info-text">Menampilkan semua ${archivedList.length} arsip</div>
+        `;
+        document.getElementById('btn-archived-less')?.addEventListener('click', () => {
+          visibleArchived = 3;
+          renderArchivedFeed();
+          document.getElementById('archived-items-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    }
+  };
+
+  renderArchivedFeed();
 }
 
 // Global Restore Handler for Archived Items
