@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * File: api.js
+ * Fungsi:
+ *   - Service layer / HTTP Client penghubung antarmuka frontend dengan REST API backend.
+ *   - Fitur Unggulan Praktikum:
+ *     1. Query Caching (Modul 5): Dua lapis caching (In-Memory Map + LocalStorage Disk Cache)
+ *        dengan Time-To-Live (TTL 24 jam).
+ *     2. Network-First Synchronization: Saat online, fetch data terbaru dari server dan perbarui cache.
+ *     3. Offline Fallback: Saat offline / jaringan putus, otomatis menyajikan data dari Disk Cache.
+ *     4. Soft Delete / Arsip API: Helper update status 'archived'/'active' dan sinkronisasi multi-device.
+ *     5. CRUD Endpoints: Mengelola kategori, barang temuan (found_items), dan barang hilang (lost_items).
+ * ============================================================================
+ */
+
 // ==========================================================================
 // 1. Konfigurasi endpoint API
 // ==========================================================================
@@ -174,7 +189,7 @@ const API = {
     if (cached && cached.data && cached.data.length) {
       return { ...cached, _isOffline: true };
     }
-    return { success: true, data: DEFAULT_CATEGORIES, _isOffline: true };
+    throw new Error('Data kategori belum tersedia di cache offline.');
   },
 
   // Lost Items
@@ -204,7 +219,7 @@ const API = {
     if (cached && cached.data && cached.data.length) {
       return { ...cached, _isOffline: true };
     }
-    return { success: true, data: DEFAULT_LOST_ITEMS, _isOffline: true };
+    throw new Error('Data barang hilang belum tersedia di cache offline.');
   },
 
   async getLostItemById(id) {
@@ -235,8 +250,7 @@ const API = {
         return { success: true, data: found, _isOffline: true };
       }
     }
-    const defaultItem = DEFAULT_LOST_ITEMS.find((item) => String(item.id) === String(id)) || DEFAULT_LOST_ITEMS[0];
-    return { success: true, data: defaultItem, _isOffline: true };
+    throw new Error('Detail barang hilang belum tersedia di cache offline.');
   },
 
   async createLostItem(data) {
@@ -306,7 +320,7 @@ const API = {
     if (cached && cached.data && cached.data.length) {
       return { ...cached, _isOffline: true };
     }
-    return { success: true, data: DEFAULT_FOUND_ITEMS, _isOffline: true };
+    throw new Error('Data barang temuan belum tersedia di cache offline.');
   },
 
   async getFoundItemById(id) {
@@ -337,8 +351,7 @@ const API = {
         return { success: true, data: found, _isOffline: true };
       }
     }
-    const defaultItem = DEFAULT_FOUND_ITEMS.find((item) => String(item.id) === String(id)) || DEFAULT_FOUND_ITEMS[0];
-    return { success: true, data: defaultItem, _isOffline: true };
+    throw new Error('Detail barang temuan belum tersedia di cache offline.');
   },
 
   async createFoundItem(data) {

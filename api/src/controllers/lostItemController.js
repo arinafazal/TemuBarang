@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * File: api/src/controllers/lostItemController.js
+ * Fungsi:
+ *   - Controller untuk entitas Barang Hilang (tabel 'lost_items' di Supabase).
+ *   - Menyediakan handler fungsi REST API:
+ *     1. getAllLostItems: Query list barang hilang (support filter kategori, search nama/lokasi, status 'archived'/'active', limit).
+ *     2. getLostItemById: Query detail satu barang hilang beserta relasi kategori.
+ *     3. createLostItem: Input laporan barang hilang baru (nama barang, deskripsi, lokasi terakhir, nama pelapor, kontak, foto).
+ *     4. updateLostItem: Update data barang hilang (termasuk status soft delete / archive).
+ *     5. deleteLostItem: Hapus permanen data barang hilang dari database Supabase.
+ * ============================================================================
+ */
+
 const { supabase, isConfigured } = require('../config/supabase');
 
 // GET /api/lost-items (dengan filter opsional: ?category_id= & ?search= & ?status= & ?limit=)

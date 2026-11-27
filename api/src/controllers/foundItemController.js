@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * File: api/src/controllers/foundItemController.js
+ * Fungsi:
+ *   - Controller untuk entitas Barang Temuan (tabel 'found_items' di Supabase).
+ *   - Menyediakan handler fungsi REST API:
+ *     1. getAllFoundItems: Query list barang temuan (support filter kategori, search nama/lokasi, status 'archived'/'active', limit).
+ *     2. getFoundItemById: Query detail satu barang temuan beserta relasi kategori.
+ *     3. createFoundItem: Input laporan barang temuan baru (menyimpan deskripsi, lokasi, penemu, foto base64, status awal).
+ *     4. updateFoundItem: Update data barang temuan (termasuk status soft delete / archive).
+ *     5. deleteFoundItem: Hapus permanen data barang temuan dari database Supabase.
+ * ============================================================================
+ */
+
 const { supabase, isConfigured } = require('../config/supabase');
 
 // GET /api/found-items (dengan filter opsional: ?category_id= & ?search= & ?status= & ?limit=)

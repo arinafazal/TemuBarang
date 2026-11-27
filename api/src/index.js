@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * File: api/src/index.js
+ * Fungsi:
+ *   - Entry point server Express.js (REST API Backend).
+ *   - Mengonfigurasi middleware: CORS, JSON parser (limit 15MB untuk foto base64).
+ *   - Cache-Control Middleware: Mengirim header 'no-cache, must-revalidate' untuk API
+ *     agar query caching di browser/disk dapat divalidasi dengan tepat.
+ *   - Mendaftarkan rute API: /api/categories, /api/lost-items, /api/found-items.
+ *   - Menyajikan berkas statis frontend PWA (/pwa) saat dijalankan di server lokal/monolith.
+ * ============================================================================
+ */
+
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });

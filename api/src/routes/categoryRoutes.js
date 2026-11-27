@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * File: api/src/routes/categoryRoutes.js
+ * Fungsi:
+ *   - Mendefinisikan endpoint routing Express untuk entitas Kategori (/api/categories).
+ *   - Memetakan method HTTP (GET, POST, PUT, DELETE) ke handler di categoryController.js.
+ * ============================================================================
+ */
+
 const express = require('express');
 const router = express.Router();
 const categoryController = require('../controllers/categoryController');

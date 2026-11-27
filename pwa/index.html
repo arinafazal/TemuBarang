@@ -1,4 +1,14 @@
-﻿<!DOCTYPE html>
+﻿<!--
+================================================================================
+File: index.html
+Fungsi:
+  - Halaman utama (App Shell) Progressive Web App (PWA) TemuBarang.
+  - Berisi struktur dasar Single Page Application (SPA): Splash Screen, Desktop Sidebar,
+    Mobile Top Bar, wadah konten dinamis (#app), Bottom Navigation, dan Modal Bantuan.
+  - Memuat file manifest.json, style.css, api.js, app.js, serta registrasi Service Worker.
+================================================================================
+-->
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -48,13 +58,22 @@
             <span class="brand-text">Temu<span class="brand-blue">Barang</span></span>
           </div>
 
-          <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Tutup / Buka Sidebar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="header-notif-btn" id="desktop-notif-btn" onclick="openNotificationModal()" title="Pusat Notifikasi">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span class="notif-badge-dot" id="desktop-notif-badge" style="display:none;"></span>
+            </button>
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Tutup / Buka Sidebar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <nav class="sidebar-menu">
@@ -118,6 +137,13 @@
             <img class="brand-logo mobile-brand-logo" src="icons/icon-homescreen.png" alt="Logo TemuBarang">
             <span class="brand-text" style="font-size: 17px;">Temu<span class="brand-blue">Barang</span></span>
           </div>
+          <button class="header-notif-btn" id="mobile-notif-btn" onclick="openNotificationModal()" title="Pusat Notifikasi">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="notif-badge-dot" id="mobile-notif-badge" style="display:none;"></span>
+          </button>
         </div>
       </header>
 
@@ -204,6 +230,48 @@
       <a href="https://wa.me/6285795457137?text=Halo%20Pos%20Satpam%20Kampus,%20saya%20butuh%20bantuan%20terkait%20barang%20hilang/temuan." target="_blank" class="help-wa-btn">
         💬 Hubungi Pos Satpam Kampus (0857-9545-7137)
       </a>
+    </div>
+  </div>
+
+  <!-- Toast Notification Popup -->
+  <div class="toast-popup" id="tb-toast">
+    <span id="tb-toast-icon">✓</span>
+    <span id="tb-toast-msg">Pesan notifikasi</span>
+  </div>
+
+  <!-- Notification Center Modal -->
+  <div class="help-modal-overlay" id="notif-modal-overlay" onclick="if(event.target === this) closeNotificationModal();">
+    <div class="help-modal-box">
+      <div class="help-modal-header">
+        <div>
+          <div class="help-modal-title">🔔 Notifikasi Aktivitas Kampus</div>
+          <div class="help-modal-subtitle">Pemberitahuan laporan barang temuan & hilang terbaru</div>
+        </div>
+        <button class="help-close-btn" onclick="closeNotificationModal()" title="Tutup">✕</button>
+      </div>
+
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:12px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="font-size:12px; color:#1e40af;">
+          <div style="font-weight:700;">Izin Notifikasi Web / PWA</div>
+          <div id="notif-permission-status" style="font-size:11.5px; color:#3b82f6;">Memeriksa izin...</div>
+        </div>
+        <button id="btn-request-notif" onclick="enablePushNotification()" class="pill-btn-figma active" style="font-size:11.5px; padding:6px 14px; cursor:pointer;">
+          Aktifkan
+        </button>
+      </div>
+
+      <div class="notif-list-group" id="notif-list-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button onclick="testAppNotification()" class="pill-btn-figma active" style="flex:1; justify-content:center; padding:10px; font-size:12.5px; cursor:pointer;">
+          🧪 Tes Notifikasi Sekarang
+        </button>
+        <button onclick="clearAllNotifications()" class="pill-btn-figma" style="justify-content:center; padding:10px; font-size:12.5px; cursor:pointer;">
+          Hapus Riwayat
+        </button>
+      </div>
     </div>
   </div>
 

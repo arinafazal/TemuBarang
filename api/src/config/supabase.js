@@ -1,3 +1,13 @@
+/**
+ * ============================================================================
+ * File: api/src/config/supabase.js
+ * Fungsi:
+ *   - Konfigurasi koneksi client database cloud Supabase (PostgreSQL).
+ *   - Membaca environment variable SUPABASE_URL dan SUPABASE_KEY dari .env.
+ *   - Menginstansiasi dan mengekspor objek client 'supabase' untuk query controller.
+ * ============================================================================
+ */
+
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const { createClient } = require('@supabase/supabase-js');

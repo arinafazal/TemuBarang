@@ -1,6 +1,14 @@
-/* ==========================================================================
-   TemuBarang - Design System (Revamp Figma Site: Manrope + Royal Blue Theme)
-   ========================================================================== */
+/*
+================================================================================
+File: style.css
+Fungsi:
+  - Berkas stylesheet utama untuk desain antarmuka PWA TemuBarang (Figma Design System).
+  - Mengatur tipografi (font Manrope), color palette (Royal Blue), dan komponen UI.
+  - Mengatur responsive layout: Desktop Sidebar navigation (layar lebar >= 768px)
+    dan Mobile Top Bar + Bottom Navigation bar (layar kecil).
+  - Menyediakan styling untuk card barang, badge status, modal, form input, dan offline toast.
+================================================================================
+*/
 
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
@@ -1551,5 +1559,239 @@ button, input, select, textarea {
 
 .help-wa-btn:hover {
   background-color: #22bf5b;
+}
+
+/* ==========================================================================
+   14. Challenge Features: Notifikasi, Share Link, dan Pagination
+   ========================================================================== */
+
+/* Toast Popup */
+.toast-popup {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e293b;
+  color: #ffffff;
+  padding: 12px 22px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-popup.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Share Button in Card */
+.card-share-btn {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: var(--primary-blue);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.card-share-btn:hover {
+  background: var(--primary-blue);
+  color: #ffffff;
+  border-color: var(--primary-blue);
+  transform: scale(1.06);
+}
+
+.card-share-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Share Button in Detail Page */
+.btn-share-detail {
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  color: var(--text-dark);
+  font-weight: 700;
+  padding: 13px 20px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 1;
+  font-family: var(--font-main);
+}
+
+.btn-share-detail:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Pagination / Load More Figma */
+.pagination-container-figma {
+  text-align: center;
+  margin: 28px 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-load-more-figma {
+  background: #ffffff;
+  border: 2px solid var(--primary-blue);
+  color: var(--primary-blue);
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 11px 26px;
+  border-radius: 50px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.btn-load-more-figma:hover {
+  background: var(--primary-blue);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.25);
+}
+
+.btn-load-more-figma.btn-collapse-figma {
+  border-color: #94a3b8;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.btn-load-more-figma.btn-collapse-figma:hover {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #64748b;
+}
+
+.pagination-info-text {
+  font-size: 12px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+/* Header Bell Button & Notification Badge */
+.header-notif-btn {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dark);
+  transition: all 0.15s ease;
+}
+
+.header-notif-btn:hover {
+  background: #f8fafc;
+  color: var(--primary-blue);
+  border-color: var(--primary-blue);
+}
+
+.notif-badge-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+}
+
+/* Notification Modal Styles */
+.notif-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 14px 0;
+  text-align: left;
+}
+
+.notif-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+
+.notif-item-card:hover {
+  background: #f1f5f9;
+}
+
+.notif-icon-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.notif-content-text {
+  flex: 1;
+}
+
+.notif-title-row {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.notif-body-row {
+  font-size: 12px;
+  color: var(--text-gray);
+  line-height: 1.4;
+}
+
+.notif-time-row {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 

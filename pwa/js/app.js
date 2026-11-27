@@ -1,6 +1,20 @@
-// ==========================================================================
-// TemuBarang - Controller & Router PWA
-// ==========================================================================
+/**
+ * ============================================================================
+ * File: app.js
+ * Fungsi:
+ *   - Controller utama & Client-side Hash Router SPA (Single Page Application).
+ *   - Mengelola State aplikasi (kategori, barang temuan, barang hilang, arsip).
+ *   - Menangani 7 Rute: #/beranda, #/temuan, #/kehilangan, #/lapor, #/detail, #/arsip, #/profil.
+ *   - Fitur Unggulan & Challenge Praktikum:
+ *     1. Lazy Loading: Atribut loading="lazy" & decoding="async" pada seluruh rendering tag <img>.
+ *     2. Kompresi Gambar: HTML5 Canvas API (max width 800px, JPEG quality 0.7) sebelum diunggah.
+ *     3. Soft Delete / Arsip: Menandai status 'archived' & 'active' sinkron ke database Supabase.
+ *     4. PWA Lifecycle: Registrasi Service Worker & penanganan event 'beforeinstallprompt'.
+ *     5. Notification API: Notifikasi web browser & in-app saat penambahan barang atau laporan baru.
+ *     6. Web Share API: Fitur berbagi link barang langsung menuju ke rute detail barang terkait.
+ *     7. Pagination: Pembatasan tampilan awal 3 barang dengan tombol "Lihat Selengkapnya".
+ * ============================================================================
+ */
 
 const state = {
   categories: [],
@@ -52,14 +66,14 @@ async function router() {
     setTabActive('hilang');
     await renderDaftarHilang(container);
   } else if (hash.startsWith('#/hilang/')) {
-    const id = hash.replace('#/hilang/', '');
+    const id = hash.replace('#/hilang/', '').split('?')[0];
     setTabActive('hilang');
     await renderDetail(container, id, 'hilang');
   } else if (hash === '#/temuan' || hash === '#/' || hash === '') {
     setTabActive('temuan');
     await renderDaftarTemuan(container);
   } else if (hash.startsWith('#/temuan/')) {
-    const id = hash.replace('#/temuan/', '');
+    const id = hash.replace('#/temuan/', '').split('?')[0];
     setTabActive('temuan');
     await renderDetail(container, id, 'temuan');
   } else if (hash === '#/lapor') {
@@ -138,21 +152,16 @@ async function renderDaftarHilang(container) {
       </div>
 
       <!-- Cards Grid Feed -->
-      <div class="cards-grid-figma" id="lost-cards-feed">
-        ${allItems.length ? allItems.map(item => renderItemCardHTML(item, 'hilang')).join('') : `
-          <div class="empty-state-figma">
-            <div class="empty-icon-figma">🔍</div>
-            <h3>Belum Ada Barang Hilang</h3>
-            <p>Tidak ada laporan barang hilang yang sedang dicari saat ini.</p>
-            <a href="#/lapor" class="pill-btn-figma active" style="text-decoration:none; display:inline-flex;">+ Laporkan Barang Hilang</a>
-          </div>
-        `}
-      </div>
+      <div class="cards-grid-figma" id="lost-cards-feed"></div>
+
+      <!-- Pagination / Load More Box (Challenge: 3 barang awal) -->
+      <div class="pagination-container-figma" id="lost-pagination-wrap"></div>
     `;
 
     let activeCat = '';
     let searchQuery = '';
     let currentSort = 'newest';
+    let visibleLimit = 3; // Challenge Pagination: Default 3 barang
 
     const applyLostFilter = () => {
       let filtered = [...allItems];
@@ -180,20 +189,70 @@ async function renderDaftarHilang(container) {
 
       const feed = document.getElementById('lost-cards-feed');
       const counterEl = document.getElementById('lost-counter-text');
+      const paginationBox = document.getElementById('lost-pagination-wrap');
+
       if (counterEl) {
         counterEl.innerHTML = `<strong>${filtered.length}</strong> laporan ditemukan`;
       }
       if (feed) {
-        feed.innerHTML = filtered.length
-          ? filtered.map(item => renderItemCardHTML(item, 'hilang')).join('')
-          : '<div class="empty-state-figma"><p>Tidak ada barang hilang yang sesuai dengan filter.</p></div>';
+        if (!filtered.length) {
+          feed.innerHTML = `
+            <div class="empty-state-figma">
+              <div class="empty-icon-figma">🔍</div>
+              <h3>Belum Ada Barang Hilang</h3>
+              <p>Tidak ada laporan barang hilang yang sesuai dengan pencarian / filter.</p>
+              <a href="#/lapor" class="pill-btn-figma active" style="text-decoration:none; display:inline-flex;">+ Laporkan Barang Hilang</a>
+            </div>
+          `;
+          if (paginationBox) paginationBox.innerHTML = '';
+        } else {
+          // Pagination: Ambil hanya sebanyak visibleLimit (default: 3)
+          const visibleItems = filtered.slice(0, visibleLimit);
+          feed.innerHTML = visibleItems.map(item => renderItemCardHTML(item, 'hilang')).join('');
+
+          // Render tombol "Lihat Selengkapnya" jika ada lebih dari 3 barang
+          if (paginationBox) {
+            if (filtered.length <= 3) {
+              paginationBox.innerHTML = '';
+            } else if (visibleLimit < filtered.length) {
+              paginationBox.innerHTML = `
+                <button class="btn-load-more-figma" id="btn-lost-load-more">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  Lihat Selengkapnya (${filtered.length - visibleLimit} barang tersisa) ▾
+                </button>
+                <div class="pagination-info-text">Menampilkan 3 dari ${filtered.length} laporan</div>
+              `;
+              document.getElementById('btn-lost-load-more')?.addEventListener('click', () => {
+                visibleLimit = filtered.length; // Tampilkan seluruh sisanya
+                applyLostFilter();
+              });
+            } else {
+              paginationBox.innerHTML = `
+                <button class="btn-load-more-figma btn-collapse-figma" id="btn-lost-collapse">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  Tampilkan Lebih Sedikit (3 Barang) ▴
+                </button>
+                <div class="pagination-info-text">Menampilkan semua ${filtered.length} laporan</div>
+              `;
+              document.getElementById('btn-lost-collapse')?.addEventListener('click', () => {
+                visibleLimit = 3;
+                applyLostFilter();
+                document.getElementById('lost-cards-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
+            }
+          }
+        }
       }
     };
+
+    // Render feed pertama kali
+    applyLostFilter();
 
     const lostSortSelect = document.getElementById('lost-sort-select');
     if (lostSortSelect) {
       lostSortSelect.addEventListener('change', (e) => {
         currentSort = e.target.value;
+        visibleLimit = 3;
         applyLostFilter();
       });
     }
@@ -203,6 +262,7 @@ async function renderDaftarHilang(container) {
         document.querySelectorAll('#lost-cat-filters .pill-btn-figma').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         activeCat = btn.getAttribute('data-cat');
+        visibleLimit = 3;
         applyLostFilter();
       });
     });
@@ -211,6 +271,7 @@ async function renderDaftarHilang(container) {
     if (input) {
       input.addEventListener('input', (e) => {
         searchQuery = e.target.value.trim();
+        visibleLimit = 3;
         applyLostFilter();
       });
     }
@@ -304,22 +365,17 @@ async function renderDaftarTemuan(container) {
       </div>
 
       <!-- Cards Grid Feed -->
-      <div class="cards-grid-figma" id="cards-feed">
-        ${allItems.length ? allItems.map(item => renderItemCardHTML(item, 'temuan')).join('') : `
-          <div class="empty-state-figma">
-            <div class="empty-icon-figma">📦</div>
-            <h3>Belum Ada Barang Temuan</h3>
-            <p>Database saat ini bersih & kosong. Jadilah yang pertama melaporkan!</p>
-            <a href="#/lapor" class="pill-btn-figma active" style="text-decoration:none; display:inline-flex;">+ Buat Laporan Temuan</a>
-          </div>
-        `}
-      </div>
+      <div class="cards-grid-figma" id="cards-feed"></div>
+
+      <!-- Pagination / Load More Box (Challenge: 3 barang awal) -->
+      <div class="pagination-container-figma" id="found-pagination-wrap"></div>
     `;
 
     let activeCat = '';
     let activeLoc = 'all';
     let searchQuery = '';
     let currentSort = 'newest';
+    let visibleLimit = 3; // Challenge Pagination: Default 3 barang
 
     const applyFilter = () => {
       let filtered = [...allItems];
@@ -352,20 +408,70 @@ async function renderDaftarTemuan(container) {
 
       const feed = document.getElementById('cards-feed');
       const counterEl = document.getElementById('counter-text');
+      const paginationBox = document.getElementById('found-pagination-wrap');
+
       if (counterEl) {
         counterEl.innerHTML = `<strong>${filtered.length}</strong> barang temuan tersedia`;
       }
       if (feed) {
-        feed.innerHTML = filtered.length
-          ? filtered.map(item => renderItemCardHTML(item, 'temuan')).join('')
-          : '<div class="empty-state-figma"><p>Tidak ada barang temuan yang sesuai dengan filter.</p></div>';
+        if (!filtered.length) {
+          feed.innerHTML = `
+            <div class="empty-state-figma">
+              <div class="empty-icon-figma">📦</div>
+              <h3>Belum Ada Barang Temuan</h3>
+              <p>Tidak ada barang temuan yang sesuai dengan filter / pencarian.</p>
+              <a href="#/lapor" class="pill-btn-figma active" style="text-decoration:none; display:inline-flex;">+ Buat Laporan Temuan</a>
+            </div>
+          `;
+          if (paginationBox) paginationBox.innerHTML = '';
+        } else {
+          // Pagination: Ambil hanya sebanyak visibleLimit (default: 3)
+          const visibleItems = filtered.slice(0, visibleLimit);
+          feed.innerHTML = visibleItems.map(item => renderItemCardHTML(item, 'temuan')).join('');
+
+          // Render tombol "Lihat Selengkapnya" jika ada lebih dari 3 barang
+          if (paginationBox) {
+            if (filtered.length <= 3) {
+              paginationBox.innerHTML = '';
+            } else if (visibleLimit < filtered.length) {
+              paginationBox.innerHTML = `
+                <button class="btn-load-more-figma" id="btn-found-load-more">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  Lihat Selengkapnya (${filtered.length - visibleLimit} barang tersisa) ▾
+                </button>
+                <div class="pagination-info-text">Menampilkan 3 dari ${filtered.length} barang temuan</div>
+              `;
+              document.getElementById('btn-found-load-more')?.addEventListener('click', () => {
+                visibleLimit = filtered.length; // Tampilkan seluruh sisanya
+                applyFilter();
+              });
+            } else {
+              paginationBox.innerHTML = `
+                <button class="btn-load-more-figma btn-collapse-figma" id="btn-found-collapse">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  Tampilkan Lebih Sedikit (3 Barang) ▴
+                </button>
+                <div class="pagination-info-text">Menampilkan semua ${filtered.length} barang temuan</div>
+              `;
+              document.getElementById('btn-found-collapse')?.addEventListener('click', () => {
+                visibleLimit = 3;
+                applyFilter();
+                document.getElementById('cards-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              });
+            }
+          }
+        }
       }
     };
+
+    // Render feed pertama kali
+    applyFilter();
 
     const foundSortSelect = document.getElementById('found-sort-select');
     if (foundSortSelect) {
       foundSortSelect.addEventListener('change', (e) => {
         currentSort = e.target.value;
+        visibleLimit = 3;
         applyFilter();
       });
     }
@@ -375,6 +481,7 @@ async function renderDaftarTemuan(container) {
         document.querySelectorAll('#cat-filters .pill-btn-figma').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         activeCat = btn.getAttribute('data-cat');
+        visibleLimit = 3;
         applyFilter();
       });
     });
@@ -384,6 +491,7 @@ async function renderDaftarTemuan(container) {
         document.querySelectorAll('.subfilter-chip-figma').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         activeLoc = btn.getAttribute('data-loc');
+        visibleLimit = 3;
         applyFilter();
       });
     });
@@ -392,6 +500,7 @@ async function renderDaftarTemuan(container) {
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.trim();
+        visibleLimit = 3;
         applyFilter();
       });
     }
@@ -829,7 +938,7 @@ async function renderFormLapor(container) {
 
     try {
       if (type === 'found') {
-        await API.createFoundItem({
+        const res = await API.createFoundItem({
           name,
           category_id: parseInt(category_id),
           location: locationVal,
@@ -839,10 +948,16 @@ async function renderFormLapor(container) {
           description: description || null,
           status: 'available'
         });
-        alert('Laporan Barang Temuan berhasil dikirim!');
+        const createdId = res && res.data ? res.data.id : null;
+        triggerNotification({
+          title: '🎁 Laporan Barang Temuan Baru!',
+          body: `"${name}" di ${locationVal || 'Kampus'} berhasil dilaporkan dan dipublikasikan.`,
+          url: createdId ? `#/temuan/${createdId}` : '#/temuan'
+        });
+        showToast('✓ Laporan Barang Temuan berhasil dikirim!', '🎁');
         location.hash = '#/temuan';
       } else {
-        await API.createLostItem({
+        const res = await API.createLostItem({
           name,
           category_id: parseInt(category_id),
           location: locationVal,
@@ -852,7 +967,13 @@ async function renderFormLapor(container) {
           description: description || null,
           status: 'searching'
         });
-        alert('Laporan Barang Hilang berhasil dikirim!');
+        const createdId = res && res.data ? res.data.id : null;
+        triggerNotification({
+          title: '🔍 Laporan Barang Hilang Baru!',
+          body: `"${name}" di ${locationVal || 'Kampus'} telah didaftarkan. Semoga lekas ditemukan!`,
+          url: createdId ? `#/hilang/${createdId}` : '#/hilang'
+        });
+        showToast('✓ Laporan Barang Hilang berhasil dikirim!', '🔍');
         location.hash = '#/hilang';
       }
     } catch (err) {
@@ -1099,11 +1220,24 @@ async function renderDetail(container, id, type) {
               <p style="font-size:13.5px; color:var(--text-body); line-height:1.6;">${item.description || 'Tidak ada deskripsi tambahan.'}</p>
             </div>
 
-            ${cleanWa ? `
-              <a href="${waUrl}" target="_blank" class="detail-wa-btn">
-                💬 Hubungi via WhatsApp (${cleanWa})
-              </a>
-            ` : ''}
+            <!-- Action Buttons: WhatsApp & Share Link (Challenge Praktikum) -->
+            <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+              ${cleanWa ? `
+                <a href="${waUrl}" target="_blank" class="detail-wa-btn" style="flex:1.2; margin-top:0;">
+                  💬 Hubungi via WhatsApp (${cleanWa})
+                </a>
+              ` : ''}
+              <button class="btn-share-detail" onclick="shareItem('${item.id}', '${isFound ? 'temuan' : 'hilang'}', '${escapeJsString(item.name)}', '${escapeJsString(item.location || '')}', event)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                Bagikan Laporan (Share Link)
+              </button>
+            </div>
 
             <!-- Live Status & Delete Actions -->
             <div style="font-size:11px; color:#94a3b8; text-align:center; margin-top:16px; margin-bottom:6px;">
@@ -1262,10 +1396,21 @@ function renderItemCardHTML(item, type) {
             <div class="reporter-avatar-figma">${initial}</div>
             <span class="reporter-label-figma">Dilaporkan oleh <strong>${reporter.name}</strong></span>
           </div>
-          <div class="card-chevron-figma">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
+          <div style="display:flex; align-items:center;">
+            <button class="card-share-btn" title="Bagikan Tautan Barang" onclick="shareItem('${item.id}', '${type}', '${escapeJsString(item.name)}', '${escapeJsString(item.location || '')}', event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+            </button>
+            <div class="card-chevron-figma">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -1274,6 +1419,25 @@ function renderItemCardHTML(item, type) {
 }
 
 // Helpers
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeJsString(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, ' ');
+}
+
 function formatRelativeTime(dateString) {
   if (!dateString) return 'Baru saja';
   const diff = Math.floor((new Date() - new Date(dateString)) / (1000 * 60 * 60 * 24));
@@ -1296,6 +1460,237 @@ function formatStatusLabel(status, isFound) {
   }
   return status === 'found' ? 'Sudah Ditemukan' : 'Sedang Dicari';
 }
+
+// ============================================================================
+// 8. CHALLENGE: SHARE LINK (Web Share API + Clipboard Fallback)
+// ============================================================================
+window.shareItem = async function(id, type, name, location, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const routeType = (type === 'found' || type === 'temuan') ? 'temuan' : 'hilang';
+  const baseUrl = window.location.href.split('#')[0];
+  const shareUrl = `${baseUrl}#/${routeType}/${id}`;
+  const shareText = `Ditemukan/Hilang: "${name}" di ${location || 'Kampus'}. Cek detail laporannya di TemuBarang:`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `TemuBarang: ${name}`,
+        text: shareText,
+        url: shareUrl
+      });
+      showToast('✓ Berhasil membagikan tautan!', '📤');
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // User membatalkan sheet
+    }
+  }
+
+  // Fallback Clipboard
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast('✓ Tautan barang disalin ke clipboard!', '📋');
+      return;
+    } catch (e) {}
+  }
+
+  prompt('Salin tautan barang ini untuk dibagikan:', shareUrl);
+};
+
+// ============================================================================
+// 9. CHALLENGE: NOTIFICATION & TOAST SYSTEM (Web Notification API)
+// ============================================================================
+function showToast(message, icon = '✓') {
+  const toast = document.getElementById('tb-toast');
+  const msgEl = document.getElementById('tb-toast-msg');
+  const iconEl = document.getElementById('tb-toast-icon');
+  if (!toast) return;
+
+  if (msgEl) msgEl.textContent = message;
+  if (iconEl) iconEl.textContent = icon;
+
+  toast.classList.add('show');
+  clearTimeout(window.__toastTimeout);
+  window.__toastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3200);
+}
+
+function getStoredNotifications() {
+  try {
+    return JSON.parse(localStorage.getItem('TB_NOTIFICATIONS') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function updateNotificationBadge() {
+  const list = getStoredNotifications();
+  const hasUnread = list.length > 0;
+  const mobBadge = document.getElementById('mobile-notif-badge');
+  const deskBadge = document.getElementById('desktop-notif-badge');
+  if (mobBadge) mobBadge.style.display = hasUnread ? 'block' : 'none';
+  if (deskBadge) deskBadge.style.display = hasUnread ? 'block' : 'none';
+}
+
+function saveNotification(item) {
+  const list = getStoredNotifications();
+  list.unshift({
+    id: Date.now(),
+    title: item.title,
+    body: item.body,
+    time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+    date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+    url: item.url || '#/beranda'
+  });
+  localStorage.setItem('TB_NOTIFICATIONS', JSON.stringify(list.slice(0, 20)));
+  updateNotificationBadge();
+}
+
+async function triggerNotification({ title, body, url }) {
+  // 1. Simpan ke database riwayat lokal
+  saveNotification({ title, body, url });
+
+  // 2. Kirim Notifikasi Native PWA / Sistem Operasi jika izin diizinkan
+  if ('Notification' in window && Notification.permission === 'granted') {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification(title, {
+          body,
+          icon: 'icons/icon-homescreen.png',
+          badge: 'icons/icon-homescreen.png',
+          vibrate: [100, 50, 100],
+          data: { url: url || './#/beranda' }
+        });
+      });
+    } else {
+      new Notification(title, {
+        body,
+        icon: 'icons/icon-homescreen.png'
+      });
+    }
+  }
+
+  // 3. Tampilkan juga Toast In-App
+  showToast(title, '🔔');
+}
+
+async function enablePushNotification() {
+  if (!('Notification' in window)) {
+    alert('Browser ini tidak mendukung Web Notification API.');
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  updateNotificationPermissionUI();
+  if (permission === 'granted') {
+    showToast('✓ Izin notifikasi berhasil diaktifkan!', '🔔');
+    triggerNotification({
+      title: '🔔 Notifikasi TemuBarang Aktif!',
+      body: 'Pemberitahuan laporan barang hilang & temuan kampus akan langsung muncul di perangkat Anda.',
+      url: '#/beranda'
+    });
+  } else if (permission === 'denied') {
+    alert('Izin notifikasi diblokir oleh browser. Silakan izinkan melalui pengaturan browser di ikon gembok samping address bar.');
+  }
+}
+
+function updateNotificationPermissionUI() {
+  const statusEl = document.getElementById('notif-permission-status');
+  const btnEl = document.getElementById('btn-request-notif');
+  if (!statusEl || !btnEl) return;
+
+  if (!('Notification' in window)) {
+    statusEl.textContent = 'Tidak didukung browser ini';
+    btnEl.style.display = 'none';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    statusEl.textContent = '✅ Izin Notifikasi Aktif (Granted)';
+    statusEl.style.color = '#16a34a';
+    btnEl.textContent = 'Sudah Aktif';
+    btnEl.disabled = true;
+    btnEl.style.opacity = '0.6';
+  } else if (Notification.permission === 'denied') {
+    statusEl.textContent = '❌ Diblokir oleh Pengguna (Denied)';
+    statusEl.style.color = '#dc2626';
+    btnEl.textContent = 'Diblokir';
+    btnEl.disabled = true;
+  } else {
+    statusEl.textContent = '⚠️ Belum diaktifkan (Klik tombol di kanan)';
+    statusEl.style.color = '#ea580c';
+    btnEl.textContent = 'Aktifkan';
+    btnEl.disabled = false;
+  }
+}
+
+function renderNotificationList() {
+  const container = document.getElementById('notif-list-container');
+  if (!container) return;
+
+  const list = getStoredNotifications();
+  if (!list.length) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 28px 12px; color: var(--text-gray); font-size:12.5px;">
+        <div style="font-size:24px; margin-bottom:6px;">📭</div>
+        Belum ada riwayat notifikasi baru.<br>
+        Notifikasi akan otomatis muncul saat laporan barang baru dibuat.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(item => `
+    <div class="notif-item-card" onclick="location.hash='${item.url}'; closeNotificationModal();">
+      <div class="notif-icon-circle">📦</div>
+      <div class="notif-content-text">
+        <div class="notif-title-row">${escapeHtml(item.title)}</div>
+        <div class="notif-body-row">${escapeHtml(item.body)}</div>
+        <div class="notif-time-row">${item.date} pukul ${item.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openNotificationModal() {
+  const modal = document.getElementById('notif-modal-overlay');
+  if (modal) modal.style.display = 'flex';
+  updateNotificationPermissionUI();
+  renderNotificationList();
+}
+
+function closeNotificationModal() {
+  const modal = document.getElementById('notif-modal-overlay');
+  if (modal) modal.style.display = 'none';
+}
+
+function testAppNotification() {
+  triggerNotification({
+    title: '📦 Laporan Baru: Kunci Motor Honda Beat',
+    body: 'Ditemukan di Area Parkir Gedung B. Ketuk untuk memeriksa detail barang.',
+    url: '#/temuan'
+  });
+}
+
+function clearAllNotifications() {
+  localStorage.removeItem('TB_NOTIFICATIONS');
+  updateNotificationBadge();
+  renderNotificationList();
+  showToast('Riwayat notifikasi telah dibersihkan');
+}
+
+// Window bindings
+window.openNotificationModal = openNotificationModal;
+window.closeNotificationModal = closeNotificationModal;
+window.enablePushNotification = enablePushNotification;
+window.testAppNotification = testAppNotification;
+window.clearAllNotifications = clearAllNotifications;
+window.showToast = showToast;
+window.triggerNotification = triggerNotification;
 
 // Offline Detection & Notification
 function updateOnlineStatus() {
@@ -1324,5 +1719,6 @@ window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', () => {
   initPWA();
   updateOnlineStatus();
+  updateNotificationBadge();
   router();
 });

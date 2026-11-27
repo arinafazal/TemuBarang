@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * File: api/src/controllers/categoryController.js
+ * Fungsi:
+ *   - Controller untuk tabel 'categories' di Supabase.
+ *   - Menyediakan handler fungsi REST API:
+ *     1. getAllCategories: Mengambil seluruh daftar kategori (Elektronik, Dokumen, dll).
+ *     2. getCategoryById: Mengambil detail satu kategori berdasarkan ID.
+ *     3. createCategory: Menambahkan kategori baru.
+ *     4. updateCategory: Memperbarui data kategori.
+ *     5. deleteCategory: Menghapus kategori.
+ * ============================================================================
+ */
+
 const { supabase, isConfigured } = require('../config/supabase');
 
 // GET /api/categories

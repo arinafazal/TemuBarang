@@ -1,5 +1,23 @@
-const CACHE_NAME = 'temubarang-static-v5';
-const DATA_CACHE_NAME = 'temubarang-data-v5';
+/**
+ * ============================================================================
+ * File: service-worker.js
+ * Fungsi:
+ *   - Service Worker PWA yang berjalan di background thread browser secara independen.
+ *   - Mengatur caching asset statis (App Shell: HTML, CSS, JS, Gambar, Icon) ke Cache Storage.
+ *   - Strategi Caching:
+ *     1. Asset Statis: Cache-First (ambil dari cache jika ada, fallback ke network).
+ *     2. Navigasi SPA: Selalu arahkan ke 'index.html' dari cache jika sedang offline.
+ *     3. Di tab Network DevTools, request yang disajikan oleh file ini ditandai sebagai: (ServiceWorker).
+ *   - Lifecycle:
+ *     - 'install': Pre-caching file inti aplikasi.
+ *     - 'activate': Membersihkan cache versi lama (cache cleanup).
+ *     - 'fetch': Mencegat setiap network request dan melayani dari Cache API.
+ *     - 'notificationclick': Menangani klik notifikasi PWA dan membuka/fokus ke route terkait.
+ * ============================================================================
+ */
+
+const CACHE_NAME = 'temubarang-static-v6';
+const DATA_CACHE_NAME = 'temubarang-data-v6';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -143,4 +161,49 @@ self.addEventListener('fetch', (event) => {
         });
     })
   );
+});
+
+// ============================================================================
+// 4. Notification & Push Events (Challenge Praktikum)
+// ============================================================================
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          if (targetUrl && targetUrl !== './') {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'TemuBarang Kampus', body: 'Ada aktivitas atau barang baru dilaporkan!' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: 'icons/icon-homescreen.png',
+    badge: 'icons/icon-homescreen.png',
+    vibrate: [100, 50, 100],
+    data: { url: data.url || './#/beranda' }
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
